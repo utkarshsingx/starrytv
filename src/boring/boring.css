@@ -1,0 +1,310 @@
+/* ==========================================================================
+   The Boring Edition.
+
+   Craigslist-era on purpose: system monospace, blue underlined links, hairline
+   rules, no shadows, no animation. Everything here should survive being printed,
+   read aloud, or rendered by a browser from 2009.
+   ========================================================================== */
+
+.boring {
+  --ink: #111114;
+  --ink-soft: #55555e;
+  --ink-faint: #85858e;
+  --rule: #d4d4d8;
+  --link: #0b3ecc;
+  --link-visited: #6a1fa8;
+  --paper: #ffffff;
+
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.boring a { color: var(--link); }
+.boring a:visited { color: var(--link-visited); }
+.boring a:hover { background: #fffb91; }
+
+/* --- top bar --------------------------------------------------------------- */
+
+.boring-topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem clamp(0.8rem, 2vw, 1.4rem);
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+  color: var(--ink-soft);
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  z-index: 5;
+}
+.boring-topbar-brand { font-weight: 700; color: var(--ink); }
+.boring-topbar-sep { color: var(--ink-faint); }
+.boring-topbar-right { margin-left: auto; color: var(--ink-faint); }
+
+/* --- layout ---------------------------------------------------------------- */
+
+.boring-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: clamp(1.2rem, 3vw, 2.6rem);
+  padding: clamp(1rem, 2.5vw, 2rem) clamp(0.8rem, 2vw, 1.4rem) 4rem;
+  align-items: start;
+}
+
+.boring-side {
+  position: sticky;
+  top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.boring-title {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.boring-standfirst {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* --- mode switch ----------------------------------------------------------- */
+
+.mode-switch {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.mode-switch label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+.mode-switch input { cursor: pointer; }
+
+.tv-cta {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  background: #111114;
+  color: #fff;
+  border: 1px solid #111114;
+  cursor: pointer;
+}
+.tv-cta:hover { background: #0b3ecc; border-color: #0b3ecc; }
+
+/* --- search ---------------------------------------------------------------- */
+
+.boring-search input {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+}
+.boring-search input:focus { outline: 2px solid var(--link); outline-offset: 1px; }
+.boring-search-count {
+  margin: 0.35rem 0 0;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+/* --- nav ------------------------------------------------------------------- */
+
+.boring-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  font-size: 12px;
+}
+.boring-nav a { text-decoration: underline; }
+
+.print-btn {
+  align-self: flex-start;
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 0.3rem 0.6rem;
+  background: #efefef;
+  border: 1px solid #999;
+  cursor: pointer;
+}
+.print-btn:hover { background: #e2e2e2; }
+
+.boring-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  border-top: 1px solid var(--rule);
+  padding-top: 0.7rem;
+}
+
+/* --- main ------------------------------------------------------------------ */
+
+.boring-intro {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1.2rem;
+  margin-bottom: 1.6rem;
+}
+.boring-intro h2 {
+  margin: 0 0 0.6rem;
+  font-size: 13px;
+  font-weight: 700;
+}
+.boring-intro ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  max-width: 74ch;
+  color: var(--ink-soft);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.boring-empty {
+  padding: 2rem 0;
+  color: var(--ink-soft);
+}
+
+.genre { margin-bottom: 2.6rem; }
+
+.genre-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 15px;
+  font-weight: 700;
+}
+.genre-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.genre-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.6rem 1.9rem;
+  align-items: start;
+}
+
+/* --- one book -------------------------------------------------------------- */
+
+.book { break-inside: avoid; }
+
+.book h3 {
+  margin: 0 0 0.25rem;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.book-link {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.channel-link {
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--link);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.book-meta {
+  margin: 0 0 0.5rem;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+.book-hook {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink);
+}
+.book-review {
+  margin: 0 0 0.55rem;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.book-underdog {
+  margin: 0 0 0.55rem;
+  font-size: 11px;
+  color: var(--ink-soft);
+  border-left: 2px solid var(--rule);
+  padding-left: 0.55rem;
+}
+.book-underdog-tag {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.book-tags, .book-links, .channel-programmes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  font-size: 11px;
+}
+.book-tags { margin-bottom: 0.4rem; color: var(--ink-faint); }
+.book-tags li::before { content: '#'; }
+.book-links li:not(:last-child)::after { content: ' ·'; color: var(--ink-faint); }
+.channel-programmes {
+  flex-direction: column;
+  gap: 0.1rem;
+  color: var(--ink-faint);
+  margin-top: 0.4rem;
+}
+.channel-programmes li::before { content: '– '; }
+
+/* --- footer ---------------------------------------------------------------- */
+
+.boring-footer {
+  border-top: 1px solid var(--rule);
+  padding: 1.2rem clamp(0.8rem, 2vw, 1.4rem) 2.5rem;
+  font-size: 11px;
+  color: var(--ink-faint);
+  max-width: 80ch;
+}
+
+/* --- responsive ------------------------------------------------------------ */
+
+@media (max-width: 760px) {
+  .boring-layout { grid-template-columns: minmax(0, 1fr); }
+  .boring-side { position: static; }
+  .boring-nav { flex-direction: row; flex-wrap: wrap; gap: 0.3rem 0.7rem; }
+}
+
+/* --- print ----------------------------------------------------------------- */
+
+@media print {
+  .boring-side, .boring-topbar, .tv-cta, .print-btn, .skip-link { display: none; }
+  .boring-layout { grid-template-columns: 1fr; padding: 0; }
+  .genre-grid { grid-template-columns: repeat(2, 1fr); }
+  .boring a { color: #000; text-decoration: none; }
+  .book-links { display: none; }
+}

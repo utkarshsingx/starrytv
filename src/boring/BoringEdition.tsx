@@ -1,7 +1,9 @@
-import { useMemo, useState, useDeferredValue } from 'react';
+import { useEffect, useMemo, useRef, useState, useDeferredValue } from 'react';
 import { library, bookCount } from '../content/library';
 import { channels } from '../content/channels';
 import { linksFor } from '../lib/links';
+import { tvAudio } from '../tv/engine/audio';
+import { SoundToggle } from '../components/SoundToggle';
 import type { Book } from '../types';
 import './boring.css';
 
@@ -37,6 +39,16 @@ export function BoringEdition({ onEnterTv, tvOpen }: Props) {
 
   const shown = results.reduce((n, g) => n + g.books.length, 0);
 
+  // The drawer hitting its stop, once, when a search first comes up empty —
+  // not on every keystroke that stays empty.
+  const lastKey = useRef<string | undefined>(undefined);
+  const wasEmpty = useRef(false);
+  useEffect(() => {
+    const empty = deferred.trim().length > 0 && shown === 0;
+    if (empty && !wasEmpty.current) tvAudio.searchEmpty();
+    wasEmpty.current = empty;
+  }, [deferred, shown]);
+
   return (
     <div className="boring">
       <a className="skip-link" href="#library">
@@ -47,7 +59,10 @@ export function BoringEdition({ onEnterTv, tvOpen }: Props) {
         <span className="boring-topbar-brand">Starry</span>
         <span className="boring-topbar-sep">/</span>
         <span>The Underdog Edition</span>
-        <span className="boring-topbar-right">{bookCount} books · {channels.length} channels</span>
+        <span className="boring-topbar-right">
+          {bookCount} books · {channels.length} channels
+        </span>
+        <SoundToggle />
       </header>
 
       <div className="boring-layout">
@@ -91,7 +106,16 @@ export function BoringEdition({ onEnterTv, tvOpen }: Props) {
               type="search"
               placeholder="Search titles, authors, tags…"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                tvAudio.unlock();
+                tvAudio.keystroke(lastKey.current);
+              }}
+              onKeyDown={(e) => {
+                // Modifiers and navigation keys strike no character, so they
+                // make no sound.
+                lastKey.current = e.key.length === 1 ? e.key : undefined;
+              }}
               autoComplete="off"
             />
             {query && (
@@ -103,13 +127,27 @@ export function BoringEdition({ onEnterTv, tvOpen }: Props) {
 
           <nav className="boring-nav" aria-label="Genres">
             {library.map((g) => (
-              <a key={g.slug} href={`#${g.slug}`}>
+              <a
+                key={g.slug}
+                href={`#${g.slug}`}
+                onClick={() => {
+                  tvAudio.unlock();
+                  tvAudio.pageJump();
+                }}
+              >
                 [{g.name}]
               </a>
             ))}
           </nav>
 
-          <button className="print-btn" onClick={() => window.print()}>
+          <button
+            className="print-btn"
+            onClick={() => {
+              tvAudio.unlock();
+              tvAudio.print();
+              window.print();
+            }}
+          >
             🖨 Print
           </button>
 

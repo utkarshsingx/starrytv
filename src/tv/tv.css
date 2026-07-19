@@ -614,3 +614,22 @@
 @media (prefers-reduced-motion: reduce) {
   .btn, .panel-btn, .tv-exit { transition: none; }
 }
+
+/* The same control, dressed for the dark room. */
+.tv-topbar .sound-toggle {
+  margin-left: 0;
+  color: #dcdad4;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 3px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+}
+.tv-topbar .sound-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+.tv-topbar .sound-toggle[aria-pressed='false'] { color: rgba(255, 255, 255, 0.42); }
+
+.tv-topbar-left { display: flex; align-items: center; gap: 0.7rem; }

@@ -308,3 +308,26 @@
   .boring a { color: #000; text-decoration: none; }
   .book-links { display: none; }
 }
+
+/* --- sound toggle ---------------------------------------------------------- */
+
+.sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.9rem;
+  padding: 0.18rem 0.45rem;
+  font: 400 11px var(--mono);
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  cursor: pointer;
+}
+.sound-toggle:hover { background: #fffb91; border-color: var(--ink); }
+.sound-toggle[aria-pressed='false'] { color: var(--ink-faint); }
+.sound-toggle-label { letter-spacing: 0.06em; }
+
+@media (max-width: 620px) {
+  .sound-toggle-label { display: none; }
+}

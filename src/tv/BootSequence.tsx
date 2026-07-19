@@ -37,11 +37,16 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
     }
 
     const timers: ReturnType<typeof setTimeout>[] = [];
-    LINES.forEach((_, i) => {
+    LINES.forEach((line, i) => {
       timers.push(
         setTimeout(() => {
           setShown(i + 1);
-          tvAudio.click(true);
+          // The line that says it is sweeping the tuner actually sweeps it.
+          if (line.startsWith('TUNER SWEEP')) tvAudio.tunerSweep();
+          // The blank line gets the paper feed and no strikes; the last line is
+          // longer, so it earns more of them.
+          else if (!line) tvAudio.paperAdvance();
+          else tvAudio.bootLine(i, line === 'LOADING NOT BORING MODE' ? 6 : 4);
         }, 170 + i * 190),
       );
     });

@@ -1,11 +1,12 @@
 import { useCallback, useEffect } from 'react';
 import { useTv } from './store';
 import { tvAudio } from './engine/audio';
+import { channelByNum } from '../content/channels';
 
 /**
  * One place where a "button press" is defined, whether it came from the on-screen
  * remote, the TV's front panel, or the keyboard. Every path goes through
- * `press`, so the click sound and the state change can never drift apart.
+ * `press`, so the sound and the state change can never drift apart.
  */
 
 export type Command =
@@ -22,60 +23,86 @@ export type Command =
 
 export function useRemoteControl() {
   const press = useCallback((cmd: Command) => {
-    const s = useTv.getState();
+    const before = useTv.getState();
 
     // Any button is a user gesture, which is our one chance to start audio.
     tvAudio.unlock();
-    tvAudio.setVolume(s.volume, s.muted);
+    tvAudio.setVolume(before.volume, before.muted);
 
     switch (cmd.type) {
       case 'POWER': {
-        const next = !s.power;
-        s.setPower(next);
-        tvAudio.setPower(next);
+        const next = !before.power;
+        before.setPower(next);
+        if (next) {
+          tvAudio.powerOn();
+          const after = useTv.getState();
+          tvAudio.setVolume(after.volume, after.muted);
+          // The bed arrives once the tube has warmed, not on the same frame as
+          // the relay.
+          const ch = channelByNum(after.channelNum);
+          if (ch) window.setTimeout(() => tvAudio.resumeBed(ch.slug), 900);
+        } else {
+          tvAudio.powerOff();
+        }
         break;
       }
+
       case 'CHANNEL_UP':
       case 'CHANNEL_DOWN':
       case 'CHANNEL':
       case 'DIGIT': {
-        if (!s.power) {
+        if (!before.power) {
           // Pressing a channel button on a set that's off turns it on first,
           // the way a real remote does.
-          s.setPower(true);
-          tvAudio.setPower(true);
+          before.setPower(true);
+          tvAudio.powerOn();
+          tvAudio.setVolume(before.volume, before.muted);
         }
-        tvAudio.click();
-        if (cmd.type === 'CHANNEL_UP') s.channelStep(1);
-        if (cmd.type === 'CHANNEL_DOWN') s.channelStep(-1);
-        if (cmd.type === 'CHANNEL') s.setChannel(cmd.num);
-        if (cmd.type === 'DIGIT') s.pressDigit(cmd.digit);
-        if (cmd.type !== 'DIGIT') tvAudio.staticBurst();
+
+        // The keypad and the channel rocker are different mouldings and sound
+        // like it: the keypad has a bright plastic tick, the rocker has none.
+        if (cmd.type === 'DIGIT') tvAudio.keypad();
+        else tvAudio.rocker();
+
+        if (cmd.type === 'CHANNEL_UP') before.channelStep(1);
+        if (cmd.type === 'CHANNEL_DOWN') before.channelStep(-1);
+        if (cmd.type === 'CHANNEL') before.setChannel(cmd.num);
+        if (cmd.type === 'DIGIT') before.pressDigit(cmd.digit);
+
+        // Digits only tune once the keypad buffer settles, so the tuning
+        // sequence is fired from the store's channel change instead — see the
+        // subscription at the bottom of this file.
         break;
       }
+
       case 'VOLUME_UP':
-        tvAudio.click(true);
-        s.volumeStep(0.1);
-        tvAudio.setVolume(useTv.getState().volume, useTv.getState().muted);
+      case 'VOLUME_DOWN': {
+        before.volumeStep(cmd.type === 'VOLUME_UP' ? 0.1 : -0.1);
+        const after = useTv.getState();
+        tvAudio.volumeDetent(after.volume);
+        tvAudio.setVolume(after.volume, after.muted);
         break;
-      case 'VOLUME_DOWN':
-        tvAudio.click(true);
-        s.volumeStep(-0.1);
-        tvAudio.setVolume(useTv.getState().volume, useTv.getState().muted);
+      }
+
+      case 'MUTE': {
+        before.toggleMute();
+        const after = useTv.getState();
+        tvAudio.setVolume(after.volume, after.muted);
+        tvAudio.muteToggle(after.muted);
         break;
-      case 'MUTE':
-        s.toggleMute();
-        tvAudio.setVolume(useTv.getState().volume, useTv.getState().muted);
-        tvAudio.blip(!useTv.getState().muted);
+      }
+
+      case 'CAPTIONS': {
+        before.toggleCaptions();
+        tvAudio.captionsToggle(useTv.getState().captions);
         break;
-      case 'CAPTIONS':
-        tvAudio.click(true);
-        s.toggleCaptions();
+      }
+
+      case 'GUIDE': {
+        before.toggleGuide();
+        tvAudio.guide(useTv.getState().guideOpen);
         break;
-      case 'GUIDE':
-        tvAudio.click(true);
-        s.toggleGuide();
-        break;
+      }
     }
   }, []);
 
@@ -116,6 +143,18 @@ export function useRemoteControl() {
 
   return press;
 }
+
+/**
+ * Fire the tuning sequence whenever the channel actually changes, from wherever
+ * — remote, keypad buffer, guide, or a deep link. Subscribing to the state is
+ * the only way to catch all of them in one place; wiring it into each caller
+ * guarantees one of them will eventually be forgotten.
+ */
+useTv.subscribe((state, prev) => {
+  if (state.channelNum === prev.channelNum) return;
+  const ch = channelByNum(state.channelNum);
+  if (ch) tvAudio.tune(ch.slug);
+});
 
 /** Keyboard shortcuts, for the help panel. */
 export const SHORTCUTS: [string, string][] = [

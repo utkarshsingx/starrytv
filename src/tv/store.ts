@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { channels } from '../content/channels';
+import { tvAudio } from './engine/audio';
 
 /**
  * All TV state lives here, deliberately outside React's render tree — the CRT
@@ -85,6 +86,7 @@ export const useTv = create<TvState>((set, get) => ({
     const c = channels.find((x) => x.num === num);
     if (!c) {
       get().showOsd({ kind: 'message', text: `NO SIGNAL — CH ${String(num).padStart(2, '0')}` });
+      tvAudio.noSignal();
       return;
     }
     set({ channelNum: num, staticLevel: 1, tunedAt: Date.now(), guideOpen: false });

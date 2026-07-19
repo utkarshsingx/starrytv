@@ -89,7 +89,10 @@ export class VideoDeck {
 
     if (el.readyState < 2) return null; // HAVE_CURRENT_DATA
 
-    const target = Math.min(offset, Math.max(0, (el.duration || offset) - 0.05));
+    // With the one-reel technique many programmes share one file, so where we
+    // want to be is the segment's start plus how far into the segment we are.
+    const wanted = (media.reelOffsetSec ?? 0) + offset;
+    const target = Math.min(wanted, Math.max(0, (el.duration || wanted) - 0.05));
     if (Number.isFinite(target) && Math.abs(el.currentTime - target) > DRIFT_TOLERANCE) {
       try {
         el.currentTime = target;
@@ -113,6 +116,10 @@ export class VideoDeck {
   /** Warm up the deck that is not on air with whatever is coming next. */
   preload(next: Programme | undefined) {
     if (!next?.media) return;
+    // If the next programme lives in the same file we are already playing, there
+    // is nothing to preload — the cut is a seek. Loading it onto the spare deck
+    // would fetch a second copy of the whole reel for no reason.
+    if (this.live.src === next.media.src) return;
     const spare = this.live === this.a ? this.b : this.a;
     if (spare.src === next.media.src) return;
     this.load(spare, next.media);

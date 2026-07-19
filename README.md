@@ -5,9 +5,10 @@ Two presentations of the same library.
 **Boring mode** (`/`) — 100 under-read books across 20 genres, each with a short review and links
 to buy or borrow. Plain monospace text. Prints, crawls, reads aloud.
 
-**Not boring mode** (`/tv`) — the same site as a CRT television you can actually tune. Twelve
-channels of poems, film scenes, records, animals, strange history, fake commercials, surreal weather
-and very short stories, plus one channel that broadcasts the book library itself.
+**Not boring mode** (`/tv`) — the same site as a CRT television you can actually tune. Thirteen
+channels of poems, film scenes described, records, animals, strange history, fake commercials,
+surreal weather and very short stories; one that broadcasts the book library itself; and one showing
+actual public-domain film.
 
 Built after the pattern of Shopify's Editions "TV mode", but from scratch and with none of their
 assets, copy or marks.
@@ -199,6 +200,28 @@ a quieter tick.
 
 ---
 
+## Channel 14 — the one with real film
+
+Everything else is a text card. Channel 14 is 30 clips from six public-domain pictures — *House on
+Haunted Hill*, *The Giant Gila Monster*, *The Phantom Planet*, *Popeye Meets Sindbad*, *Superman vs.
+The Mechanical Monsters*, and a variety hour — all inside one 6 MB file.
+
+That single file is the point. Every programme on the channel points at the same `src` with a
+different `reelOffsetSec`, so moving between segments is a **seek, not a load**. Browsers never
+block a seek, so there is no black frame between clips and no second permission prompt for audio.
+Switching channels away and back re-enters mid-clip, because the schedule is still the wall clock.
+
+It is 240×180, which looks absurd written down and is exactly right on screen — the CRT shader eats
+fine detail anyway, so encoding lower and letting the scanlines put the texture back is the single
+biggest performance lever available.
+
+The channel deliberately has no entry in `beds.data.ts`: the films have their own soundtrack, and an
+ambient bed underneath would only be fighting it.
+
+To rebuild or extend the reel, `ffmpeg` is all you need — see `## Putting real video on it` below.
+
+---
+
 ## Putting real video on it
 
 The channels ship as text cards, but any programme can carry a real video file instead:
@@ -272,11 +295,19 @@ version as the low-quality fallback tier.
 
 ## Credits
 
-The power-on and power-off transitions and the floor reflection are adapted from
-**[jesseweb.com](https://github.com/JesseWebDotCom/jesseweb-com)** by Jesse M. Torres, MIT licensed.
-The keyframe timings and shapes are theirs; the implementation is reworked to drive our shader
-uniforms, so the animation happens inside the tube — picking up the barrel warp, the aperture grille
-and the vignette — rather than as a DOM element sitting on top of the glass.
+The power-on and power-off transitions, the floor reflection, and the footage on channel 14 come
+from **[jesseweb.com](https://github.com/JesseWebDotCom/jesseweb-com)** by Jesse M. Torres, MIT
+licensed. The films themselves are public domain, sourced by that project from the
+[Internet Archive](https://archive.org), largely the
+[Prelinger Archives](https://archive.org/details/prelinger).
+
+That project's 24-minute reel is built as an interactive CV — most of it is unlabelled B-roll
+illustrating the author's career, and only six of its channels carry films that can actually be
+named. Channel 14 re-cuts just those six, so what ships here is 6 MB of identifiable cinema rather
+than 19 MB of someone else's biography.
+The keyframe timings and shapes of the transitions are theirs; the implementation is reworked to
+drive our shader uniforms, so the animation happens inside the tube — picking up the barrel warp,
+the aperture grille and the vignette — rather than as a DOM element sitting on top of the glass.
 
 ```
 MIT License

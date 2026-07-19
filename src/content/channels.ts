@@ -1,5 +1,6 @@
 import type { Channel, Programme } from '../types';
 import { CHANNEL_DATA } from './programmes.data';
+import { MATINEE } from './reel.data';
 import { library } from './library';
 
 /**
@@ -22,6 +23,7 @@ const COLOURS: Record<string, string> = {
   library: '#e8c27a',
   weather: '#7fd4ff',
   shorts: '#c0b4e8',
+  matinee: '#f0e2c0',
   signoff: '#8fb8cc',
 };
 
@@ -37,6 +39,7 @@ const BLURBS: Record<string, string> = {
   library: 'One book from the library, every few minutes, forever.',
   weather: 'Forecasts for territories that are not on the map.',
   shorts: 'Complete stories, sixty to a hundred words.',
+  matinee: 'Actual film. Six public-domain pictures, on a loop.',
   signoff: 'Late-night quiet. Test card and company.',
 };
 
@@ -125,7 +128,20 @@ const written: Channel[] = CHANNEL_DATA.map((c) => ({
   })),
 }));
 
-export const channels: Channel[] = [...written, libraryChannel()]
+/**
+ * Channel 14 is the only one carrying real footage. Its programmes all point at
+ * the same file at different offsets, so moving between them is a seek.
+ */
+const matineeChannel: Channel = {
+  num: 14,
+  slug: 'matinee',
+  name: 'MATINEE',
+  color: COLOURS.matinee,
+  blurb: BLURBS.matinee,
+  programmes: MATINEE,
+};
+
+export const channels: Channel[] = [...written, libraryChannel(), matineeChannel]
   .filter((c) => c.programmes.length > 0)
   .sort((a, b) => a.num - b.num);
 

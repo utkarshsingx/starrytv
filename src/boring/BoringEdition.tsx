@@ -173,8 +173,9 @@ export function BoringEdition({ onEnterTv, tvOpen }: Props) {
               </li>
               <li>
                 The <strong>Not boring</strong> version is the same site as a television you can
-                actually tune. {channels.length} channels of poems, film scenes, records, animals,
-                weather and very short stories. It is more fun and strictly less useful.
+                actually tune. {channels.length} channels of poems, records, animals, weather, very
+                short stories — and one showing actual film. It is more fun and strictly less
+                useful.
               </li>
             </ul>
           </section>

@@ -61,6 +61,13 @@ export type Programme = {
     src: string;
     poster?: string;
     captions?: { lang: string; label: string; src: string }[];
+    /**
+     * Where this programme starts inside `src`, for the one-reel technique:
+     * many programmes share a single long file and a channel change is a seek
+     * rather than a load. Browsers never block a seek, so audio and video keep
+     * playing and there is no black frame between segments.
+     */
+    reelOffsetSec?: number;
   };
 };
 

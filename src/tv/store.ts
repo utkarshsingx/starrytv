@@ -29,6 +29,8 @@ type TvState = {
   staticLevel: number;
   /** Wall-clock ms when the current tune-in started, for the warm-up wipe. */
   tunedAt: number;
+  /** Wall-clock ms when the set was last switched on or off. */
+  poweredAt: number;
 
   osd: Osd;
 
@@ -71,10 +73,11 @@ export const useTv = create<TvState>((set, get) => ({
   keypad: '',
   staticLevel: 1,
   tunedAt: Date.now(),
+  poweredAt: Date.now(),
   osd: { kind: 'none' },
 
   setPower: (on) => {
-    set({ power: on, tunedAt: Date.now(), staticLevel: on ? 1 : 0 });
+    set({ power: on, tunedAt: Date.now(), poweredAt: Date.now(), staticLevel: on ? 1 : 0 });
     if (on) {
       const c = channels.find((x) => x.num === get().channelNum);
       if (c) get().showOsd({ kind: 'channel', num: c.num, name: c.name });

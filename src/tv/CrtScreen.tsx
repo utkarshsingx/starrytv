@@ -5,6 +5,7 @@ import { nowPlaying } from './engine/schedule';
 import { paintFrame, W, H } from './engine/compositor';
 import { Crt, DEFAULT_UNIFORMS, tintFromHex, type CrtUniforms } from './engine/crt';
 import { VideoDeck } from './engine/video';
+import { powerFrame, POWER_ON_SEC, POWER_OFF_SEC } from './engine/power';
 import { prefersReducedMotion } from '../lib/env';
 
 /**
@@ -15,7 +16,17 @@ import { prefersReducedMotion } from '../lib/env';
  * non-reactively via `tvState()` so that turning the volume up does not cause
  * React to re-render sixty times a second.
  */
-export function CrtScreen() {
+type Props = {
+  /**
+   * Optional canvas, owned by the caller and placed wherever it likes, that
+   * receives a mirrored copy of each frame. It has to live outside the bezel to
+   * read as a reflection on the floor, so the caller positions it and we just
+   * paint into it.
+   */
+  floorRef?: React.RefObject<HTMLCanvasElement | null>;
+};
+
+export function CrtScreen({ floorRef }: Props) {
   const glRef = useRef<HTMLCanvasElement | null>(null);
   const srcRef = useRef<HTMLCanvasElement | null>(null);
   const deckHostRef = useRef<HTMLDivElement | null>(null);
@@ -68,7 +79,6 @@ export function CrtScreen() {
     let quality = 1;
 
     const u: CrtUniforms = { ...DEFAULT_UNIFORMS };
-    let collapse = power ? 0 : 1;
 
     const loop = (ts: number) => {
       if (stopped) return;
@@ -94,13 +104,14 @@ export function CrtScreen() {
           sinceTune < 0.1 ? 1 : Math.max(0, Math.exp(-(sinceTune - 0.1) / 0.16));
       }
 
-      // ---- power collapse ----
-      const target = s.power ? 0 : 1;
-      collapse += (target - collapse) * (s.power ? 0.22 : 0.12);
-      if (Math.abs(collapse - target) < 0.002) collapse = target;
-
-      // ---- warm-up: the picture brightens as the tube comes up to heat ----
-      const warm = s.power ? Math.min(1, sinceTune / 0.7) : 1;
+      // ---- power transition ----
+      // A keyframed raster: snapping open from a line with an overshoot on the
+      // way on, collapsing to a line and then a dot on the way off. Reduced
+      // motion goes straight to the steady state at either end.
+      const sinceSwitch = (Date.now() - s.poweredAt) / 1000;
+      const pf = reduceMotion
+        ? powerFrame(s.power, s.power ? POWER_ON_SEC : POWER_OFF_SEC)
+        : powerFrame(s.power, sinceSwitch);
 
       // ---- real video, when a programme carries one ----
       let video: HTMLVideoElement | null = null;
@@ -125,13 +136,37 @@ export function CrtScreen() {
 
       if (crt.ok) {
         u.static = staticLevel;
-        u.collapse = collapse;
+        u.scale = pf.scale;
+        u.flash = pf.flash;
         u.warp = reduceMotion ? 0.16 : 0.42;
-        u.bright = (s.power ? 0.55 + warm * 0.51 : 1.06) * (quality < 1 ? 1.04 : 1);
+        u.bright = pf.bright * (quality < 1 ? 1.04 : 1);
         u.bloom = quality < 1 ? 0.32 : 0.5;
         u.scan = reduceMotion ? 0.42 : 0.75;
         u.tint = channel ? tintFromHex(channel.color) : [1, 1, 1];
         crt.render(src, ts / 1000, u);
+      }
+
+      // ---- floor reflection ----
+      // The same frame, mirrored onto the floorboards. Drawn from the composited
+      // canvas rather than read back from the GL one, because reading pixels out
+      // of WebGL every frame stalls the pipeline and this is going to be blurred
+      // to mush by CSS anyway. It follows the raster geometry, so it collapses
+      // with the tube when the set is switched off.
+      const floor = floorRef?.current;
+      if (floor) {
+        const fctx = floor.getContext('2d');
+        if (fctx) {
+          fctx.clearRect(0, 0, floor.width, floor.height);
+          fctx.save();
+          // Pitched brighter than feels right on paper: the source is dark text
+          // cards on a dark set, so the reflection has very little to work with
+          // before CSS blurs and fades it further.
+          fctx.globalAlpha = 0.8 * Math.min(1, pf.scale[1]);
+          fctx.translate(floor.width / 2, floor.height / 2);
+          fctx.scale(pf.scale[0], -pf.scale[1]);
+          fctx.drawImage(src, -floor.width / 2, -floor.height / 2, floor.width, floor.height);
+          fctx.restore();
+        }
       }
 
       // Track this as a local flag, not off React state — the closure captures

@@ -34,7 +34,8 @@ uniform vec2  uRes;        // output resolution in device pixels
 uniform float uTime;
 uniform float uWarp;       // barrel distortion amount
 uniform float uStatic;     // 0..1 static mix, driven by the tuner
-uniform float uCollapse;   // 0..1 power-off collapse
+uniform vec2  uScale;      // picture geometry; (1,1) is a normal raster
+uniform float uFlash;      // additive phosphor bloom during power transitions
 uniform float uBloom;
 uniform float uScan;       // scanline depth
 uniform float uBright;
@@ -71,12 +72,13 @@ vec3 bloomTap(vec2 uv, float r) {
 void main() {
   vec2 uv = vUv;
 
-  // ---- power-off collapse: squeeze to a line, then to a dot ----
-  if (uCollapse > 0.0) {
-    float c = uCollapse;
-    float sy = max(1.0 - c, 0.0015);
-    float sx = max(1.0 - max(c - 0.62, 0.0) / 0.38, 0.0015);
-    uv = vec2(0.5, 0.5) + (uv - 0.5) / vec2(sx, sy);
+  // ---- raster geometry ----
+  // Driven by a keyframe timeline in JS, so the same two uniforms cover the
+  // power-off collapse to a line and then a dot, and the power-on snap open
+  // with its overshoot. Deflection is a physical thing that can overshoot, so
+  // uScale is allowed above 1.
+  if (uScale.x != 1.0 || uScale.y != 1.0) {
+    uv = vec2(0.5, 0.5) + (uv - 0.5) / max(uScale, vec2(0.0015));
     if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
       gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
       return;
@@ -157,6 +159,13 @@ void main() {
   float vig = pow(clamp(v.x * v.y * 22.0, 0.0, 1.0), 0.22);
   col *= vig;
 
+  // ---- phosphor bloom during a power transition ----
+  // As the raster collapses, the same beam energy is concentrated into a
+  // smaller and smaller area, so the picture does not just shrink — it blows
+  // out to white on the way. Squeezing the geometry without this reads as a
+  // CSS transform; with it, it reads as a tube.
+  col += uFlash;
+
   // the glass itself is never perfectly black
   col = max(col, vec3(0.008, 0.010, 0.013));
 
@@ -167,7 +176,10 @@ void main() {
 export type CrtUniforms = {
   warp: number;
   static: number;
-  collapse: number;
+  /** Raster geometry. [1, 1] is a normal picture; may exceed 1 on overshoot. */
+  scale: [number, number];
+  /** Additive white bloom, for the power transitions. */
+  flash: number;
   bloom: number;
   scan: number;
   bright: number;
@@ -177,7 +189,8 @@ export type CrtUniforms = {
 export const DEFAULT_UNIFORMS: CrtUniforms = {
   warp: 0.42,
   static: 0,
-  collapse: 0,
+  scale: [1, 1],
+  flash: 0,
   bloom: 0.5,
   scan: 0.75,
   bright: 1.06,
@@ -284,7 +297,7 @@ export class Crt {
 
     for (const name of [
       'uTex', 'uRes', 'uTime', 'uWarp', 'uStatic',
-      'uCollapse', 'uBloom', 'uScan', 'uBright', 'uTint',
+      'uScale', 'uFlash', 'uBloom', 'uScan', 'uBright', 'uTint',
     ]) {
       this.loc[name] = gl.getUniformLocation(prog, name);
     }
@@ -320,7 +333,8 @@ export class Crt {
     gl.uniform1f(this.loc.uTime, time);
     gl.uniform1f(this.loc.uWarp, u.warp);
     gl.uniform1f(this.loc.uStatic, u.static);
-    gl.uniform1f(this.loc.uCollapse, u.collapse);
+    gl.uniform2f(this.loc.uScale, u.scale[0], u.scale[1]);
+    gl.uniform1f(this.loc.uFlash, u.flash);
     gl.uniform1f(this.loc.uBloom, u.bloom);
     gl.uniform1f(this.loc.uScan, u.scan);
     gl.uniform1f(this.loc.uBright, u.bright);

@@ -14,15 +14,41 @@
   flex-direction: column;
 }
 
-/* The room the television is sitting in. */
+/* ---------------------------------------------------------------------------
+   The room the television is sitting in.
+
+   A wall, a floor, and a pool of light from the tube. The floor exists mainly so
+   that the reflection has something to be a reflection *on* — a mirrored picture
+   floating in the void reads as a graphics trick, the same picture on a
+   floorboard reads as a room.
+   --------------------------------------------------------------------------- */
+
 .tv-room {
   position: fixed;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(120, 150, 190, 0.13), transparent 70%),
-    radial-gradient(ellipse 120% 80% at 50% 120%, rgba(0, 0, 0, 0.9), transparent),
-    linear-gradient(180deg, #0a0b10 0%, #06070a 55%, #030406 100%);
+    radial-gradient(ellipse 70% 55% at 50% 38%, rgba(120, 150, 190, 0.13), transparent 70%),
+    linear-gradient(180deg, #0a0b10 0%, #07080d 40%, #050609 100%);
+}
+
+/* The floor, and the shadow the set casts back onto the wall behind it. */
+.tv-room::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 26vh;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, transparent 4%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.014) 0 1px,
+      transparent 1px 74px
+    ),
+    linear-gradient(180deg, #14110c 0%, #0c0a07 55%, #070605 100%);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.7);
 }
 
 /* --- top bar --------------------------------------------------------------- */
@@ -86,6 +112,13 @@
 }
 
 /* --- the television chassis ------------------------------------------------ */
+
+/* The set and its reflection occupy one grid cell together. */
+.tv-set-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 
 .tv-set {
   position: relative;
@@ -279,6 +312,29 @@
   font: 700 0.95rem/1 var(--mono);
   color: #ff7a3c;
   text-shadow: 0 0 10px rgba(255, 122, 60, 0.7);
+}
+
+/* ---------------------------------------------------------------------------
+   Floor reflection.
+
+   The composited frame, mirrored, blurred and faded out downward. Three things
+   sell it: the blur (a wooden floor is not a mirror), the mask fade (light falls
+   off with distance), and the horizontal squeeze — you are looking at the floor
+   at a glancing angle, so the reflection is foreshortened.
+   --------------------------------------------------------------------------- */
+
+.tv-floor-reflection {
+  display: block;
+  width: 78%;
+  height: clamp(56px, 10vh, 110px);
+  margin: -6px auto 0;
+  transform: scaleX(1.05);
+  filter: blur(6px) saturate(0.8) brightness(1.15);
+  opacity: 0.85;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), transparent 88%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), transparent 88%);
 }
 
 .tv-ports {

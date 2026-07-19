@@ -16,6 +16,7 @@ type Props = { onExit: () => void };
 
 export function TvMode({ onExit }: Props) {
   const press = useRemoteControl();
+  const floorRef = useRef<HTMLCanvasElement | null>(null);
   const power = useTv((s) => s.power);
   const channelNum = useTv((s) => s.channelNum);
   const guideOpen = useTv((s) => s.guideOpen);
@@ -86,63 +87,76 @@ export function TvMode({ onExit }: Props) {
       </header>
 
       <div className="tv-stage">
-        <div className="tv-set">
-          <div className="tv-bezel">
-            <CrtScreen />
-          </div>
-
-          <div className="tv-brand">STARRY</div>
-
-          <div className="tv-panel" role="group" aria-label="Television front panel">
-            <button className="panel-btn" onClick={() => press({ type: 'VOLUME_DOWN' })} aria-label="Volume down">
-              ◄
-            </button>
-            <button className="panel-btn" onClick={() => press({ type: 'VOLUME_UP' })} aria-label="Volume up">
-              ►
-            </button>
-            <button
-              className={`panel-btn ${muted ? 'is-active' : ''}`}
-              onClick={() => press({ type: 'MUTE' })}
-              aria-label="Mute"
-            >
-              ✖
-            </button>
-            <button className="panel-btn" onClick={() => press({ type: 'CHANNEL_DOWN' })} aria-label="Channel down">
-              CH▼
-            </button>
-            <button className="panel-btn" onClick={() => press({ type: 'CHANNEL_UP' })} aria-label="Channel up">
-              CH▲
-            </button>
-            <button
-              className={`panel-btn ${captions ? 'is-active' : ''}`}
-              onClick={() => press({ type: 'CAPTIONS' })}
-              aria-label="Captions"
-            >
-              CC
-            </button>
-
-            <div className="panel-readout" aria-hidden="true">
-              <span className="panel-readout-label">TIME</span>
-              <span className="panel-readout-value">
-                {np && power ? formatClock(np.programme.durationSec - np.offset) : '--:--'}
-              </span>
+        {/* The set and its reflection are one grid cell — the reflection has to
+            sit directly under the chassis, not in the next column along. */}
+        <div className="tv-set-column">
+          <div className="tv-set">
+            <div className="tv-bezel">
+              <CrtScreen floorRef={floorRef} />
             </div>
 
-            <button
-              className={`panel-btn panel-power ${power ? 'is-on' : ''}`}
-              onClick={() => press({ type: 'POWER' })}
-              aria-label={power ? 'Power off' : 'Power on'}
-            >
-              ⏻
-            </button>
+            <div className="tv-brand">STARRY</div>
+
+            <div className="tv-panel" role="group" aria-label="Television front panel">
+              <button className="panel-btn" onClick={() => press({ type: 'VOLUME_DOWN' })} aria-label="Volume down">
+                ◄
+              </button>
+              <button className="panel-btn" onClick={() => press({ type: 'VOLUME_UP' })} aria-label="Volume up">
+                ►
+              </button>
+              <button
+                className={`panel-btn ${muted ? 'is-active' : ''}`}
+                onClick={() => press({ type: 'MUTE' })}
+                aria-label="Mute"
+              >
+                ✖
+              </button>
+              <button className="panel-btn" onClick={() => press({ type: 'CHANNEL_DOWN' })} aria-label="Channel down">
+                CH▼
+              </button>
+              <button className="panel-btn" onClick={() => press({ type: 'CHANNEL_UP' })} aria-label="Channel up">
+                CH▲
+              </button>
+              <button
+                className={`panel-btn ${captions ? 'is-active' : ''}`}
+                onClick={() => press({ type: 'CAPTIONS' })}
+                aria-label="Captions"
+              >
+                CC
+              </button>
+
+              <div className="panel-readout" aria-hidden="true">
+                <span className="panel-readout-label">TIME</span>
+                <span className="panel-readout-value">
+                  {np && power ? formatClock(np.programme.durationSec - np.offset) : '--:--'}
+                </span>
+              </div>
+
+              <button
+                className={`panel-btn panel-power ${power ? 'is-on' : ''}`}
+                onClick={() => press({ type: 'POWER' })}
+                aria-label={power ? 'Power off' : 'Power on'}
+              >
+                ⏻
+              </button>
+            </div>
+
+            <div className="tv-ports" aria-hidden="true">
+              <span className="port port-white" />
+              <span className="port port-yellow" />
+              <span className="port port-red" />
+              <span className="port port-black" />
+            </div>
           </div>
 
-          <div className="tv-ports" aria-hidden="true">
-            <span className="port port-white" />
-            <span className="port port-yellow" />
-            <span className="port port-red" />
-            <span className="port port-black" />
-          </div>
+          {/* The picture, mirrored on the floorboards under the set. */}
+          <canvas
+            ref={floorRef}
+            className="tv-floor-reflection"
+            width={320}
+            height={240}
+            aria-hidden="true"
+          />
         </div>
 
         <aside className="tv-aside">

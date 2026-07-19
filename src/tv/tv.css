@@ -1,0 +1,616 @@
+/* ==========================================================================
+   Not Boring mode — the set, the room, and the handset.
+   ========================================================================== */
+
+.tv-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: auto;
+  background: #08090c;
+  color: #e8e6e0;
+  font-family: var(--mono);
+  display: flex;
+  flex-direction: column;
+}
+
+/* The room the television is sitting in. */
+.tv-room {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(120, 150, 190, 0.13), transparent 70%),
+    radial-gradient(ellipse 120% 80% at 50% 120%, rgba(0, 0, 0, 0.9), transparent),
+    linear-gradient(180deg, #0a0b10 0%, #06070a 55%, #030406 100%);
+}
+
+/* --- top bar --------------------------------------------------------------- */
+
+.tv-topbar {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem clamp(1rem, 3vw, 2.2rem);
+  flex-wrap: wrap;
+}
+
+.tv-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.85rem;
+  font: 600 0.72rem/1 var(--mono);
+  letter-spacing: 0.14em;
+  color: #dcdad4;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.tv-exit:hover { background: rgba(255, 255, 255, 0.11); border-color: rgba(255, 255, 255, 0.32); }
+.tv-exit span[aria-hidden] { font-size: 0.95rem; line-height: 1; }
+
+.tv-wordmark {
+  font: 700 0.95rem/1 var(--mono);
+  letter-spacing: 0.34em;
+  text-align: right;
+  color: #f2efe8;
+}
+.tv-wordmark-sub {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  color: rgba(232, 230, 224, 0.42);
+}
+
+/* --- stage ----------------------------------------------------------------- */
+
+.tv-stage {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(260px, 25vw, 340px);
+  gap: clamp(1rem, 2.5vw, 2.4rem);
+  align-items: start;
+  padding: 0 clamp(1rem, 3vw, 2.2rem) 2.5rem;
+  max-width: 1560px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* --- the television chassis ------------------------------------------------ */
+
+.tv-set {
+  position: relative;
+  border-radius: 22px 22px 16px 16px;
+  padding: clamp(14px, 1.7vw, 26px);
+  background:
+    linear-gradient(176deg, #55585e 0%, #3b3e44 18%, #2a2d33 55%, #1c1e23 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -3px 10px rgba(0, 0, 0, 0.7),
+    0 40px 90px rgba(0, 0, 0, 0.75),
+    0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Subtle moulded-plastic speckle. */
+.tv-set::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px);
+}
+
+.tv-bezel {
+  position: relative;
+  border-radius: 18px;
+  padding: clamp(10px, 1.4vw, 22px);
+  background: linear-gradient(170deg, #1b1d21, #0a0b0d 60%, #141518);
+  box-shadow:
+    inset 0 3px 12px rgba(0, 0, 0, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.crt-screen {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 5% / 6%;
+  overflow: hidden;
+  background: #000;
+  box-shadow:
+    inset 0 0 40px rgba(0, 0, 0, 0.95),
+    0 0 34px rgba(120, 200, 255, 0.055);
+}
+
+.crt-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------------------------------------------------------------------------
+   Fallback picture.
+
+   The composited canvas is always in the DOM. With WebGL working it is just a
+   texture source and stays invisible. Without it, this is the television — CSS
+   does what it can: scanlines, a grille, a vignette. Flat, but recognisably a
+   CRT, and infinitely better than the blank rectangle you get if the only path
+   to the screen is a shader that failed to compile.
+   --------------------------------------------------------------------------- */
+
+.crt-fallback-host {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.crt-fallback {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.crt-screen.is-degraded .crt-canvas { display: none; }
+.crt-screen.is-degraded .crt-fallback-host {
+  opacity: 1;
+  filter: saturate(1.12) contrast(1.06);
+}
+.crt-screen.is-degraded .crt-fallback-host::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0.28) 3px,
+      rgba(0, 0, 0, 0.28) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 80, 80, 0.055) 0px,
+      rgba(80, 255, 120, 0.055) 1px,
+      rgba(90, 120, 255, 0.055) 2px
+    ),
+    radial-gradient(ellipse 78% 74% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.62) 100%);
+}
+
+/* Frame source only. The video is drawn into the canvas, never shown here. */
+.crt-deck {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The sheen of the glass itself — a fixed highlight that does not move with the
+   picture, which is what tells your eye there is a physical surface there. */
+.crt-glass {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 46% 34% at 27% 16%, rgba(255, 255, 255, 0.085), transparent 62%),
+    radial-gradient(ellipse 34% 22% at 82% 88%, rgba(190, 220, 255, 0.045), transparent 66%);
+  mix-blend-mode: screen;
+}
+
+.crt-degraded {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  font: 600 0.55rem/1 var(--mono);
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.55);
+  padding: 4px 7px;
+  border-radius: 2px;
+}
+
+.tv-brand {
+  text-align: center;
+  margin-top: 0.85rem;
+  font: 800 0.95rem/1 var(--mono);
+  letter-spacing: 0.42em;
+  color: rgba(255, 255, 255, 0.62);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.9);
+}
+
+/* --- front panel ----------------------------------------------------------- */
+
+.tv-panel {
+  margin-top: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #26282d, #16181c);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -2px 6px rgba(0,0,0,0.6);
+}
+
+.panel-btn {
+  min-width: 40px;
+  height: 30px;
+  padding: 0 0.5rem;
+  font: 600 0.68rem/1 var(--mono);
+  color: #d7d5cf;
+  background: linear-gradient(180deg, #3d4046, #24262b);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-top-color: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.06s, filter 0.12s;
+}
+.panel-btn:hover { filter: brightness(1.25); }
+.panel-btn:active { transform: translateY(1px); filter: brightness(0.85); }
+.panel-btn.is-active { color: #7cfc9a; box-shadow: inset 0 0 8px rgba(124, 252, 154, 0.35); }
+
+.panel-power.is-on { color: #ff6a5a; box-shadow: inset 0 0 10px rgba(255, 106, 90, 0.45); }
+
+.panel-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 4px;
+  background: #0c0e0c;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+.panel-readout-label { font-size: 0.52rem; letter-spacing: 0.16em; color: rgba(255,255,255,0.35); }
+.panel-readout-value {
+  font: 700 0.95rem/1 var(--mono);
+  color: #ff7a3c;
+  text-shadow: 0 0 10px rgba(255, 122, 60, 0.7);
+}
+
+.tv-ports {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+  padding-right: 0.4rem;
+}
+.port {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  box-shadow: inset 0 2px 3px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.12);
+}
+.port-white { background: #cfcfcf; }
+.port-yellow { background: #c9a227; }
+.port-red { background: #a52a2a; }
+.port-black { background: #1a1a1a; }
+
+/* --- aside ---------------------------------------------------------------- */
+
+.tv-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.now-card {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(12, 14, 18, 0.85);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.now-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  font: 700 0.78rem/1 var(--mono);
+  letter-spacing: 0.1em;
+  background: rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.now-card-name { font-size: 0.62rem; letter-spacing: 0.18em; color: rgba(255,255,255,0.55); }
+.now-card-body { padding: 0.8rem 0.75rem 0.95rem; }
+.now-card-body h2 {
+  margin: 0 0 0.35rem;
+  font: 700 0.98rem/1.25 var(--mono);
+  color: #f4f1ea;
+}
+.now-card-sub {
+  margin: 0 0 0.6rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+.now-card-lines {
+  margin: 0 0 0.7rem;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: rgba(233, 230, 222, 0.82);
+}
+.now-card-link {
+  display: inline-block;
+  margin-bottom: 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #e8c27a;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.now-card-link:hover { color: #fff; }
+
+.now-card-blurb {
+  margin: 0;
+  padding-top: 0.6rem;
+  border-top: 1px dashed rgba(255,255,255,0.14);
+  font-size: 0.68rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.42);
+}
+.now-card kbd {
+  font: 600 0.7rem var(--mono);
+  padding: 1px 5px;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 3px;
+}
+
+/* --- the handset ----------------------------------------------------------- */
+
+.remote {
+  align-self: center;
+  width: min(212px, 100%);
+  padding: 0.9rem 0.75rem 1rem;
+  border-radius: 16px;
+  background: linear-gradient(172deg, #4a4d53 0%, #34373d 30%, #23262b 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.65),
+    0 22px 44px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.remote-brand {
+  text-align: center;
+  font: 700 0.55rem/1 var(--mono);
+  letter-spacing: 0.34em;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.btn {
+  font-family: var(--mono);
+  border: 1px solid rgba(0, 0, 0, 0.65);
+  border-top-color: rgba(255, 255, 255, 0.22);
+  background: linear-gradient(180deg, #e6e4df, #b9b7b1);
+  color: #1b1c1f;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: transform 0.06s, filter 0.12s, box-shadow 0.12s;
+}
+.btn:hover { filter: brightness(1.07); }
+.btn:active { transform: translateY(1.5px); filter: brightness(0.88); }
+.btn:focus-visible { outline: 2px solid #7cd4ff; outline-offset: 2px; }
+
+.btn-power {
+  align-self: center;
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #d93a2b, #8e1d13);
+  border-color: rgba(0,0,0,0.7);
+  display: grid;
+  place-items: center;
+}
+.power-glyph {
+  width: 15px; height: 15px;
+  border: 2.5px solid rgba(255, 235, 230, 0.9);
+  border-top-color: transparent;
+  border-radius: 50%;
+  position: relative;
+}
+.power-glyph::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: -5px;
+  transform: translateX(-50%);
+  width: 2.5px; height: 9px;
+  background: rgba(255, 235, 230, 0.9);
+}
+.btn-power.is-on { box-shadow: 0 0 16px rgba(255, 80, 60, 0.75); }
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+.btn-num {
+  height: 34px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.btn-zero { grid-column: 2; }
+
+.remote-lower {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.4rem;
+  align-items: center;
+}
+.rocker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem 0;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.28);
+}
+.btn-rocker {
+  width: 100%;
+  height: 26px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 13px;
+}
+.rocker-label {
+  font: 700 0.52rem/1 var(--mono);
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.55);
+}
+.remote-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.btn-small {
+  height: 26px;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+.btn-small.is-active {
+  background: linear-gradient(180deg, #7cfc9a, #43b96a);
+  color: #06170c;
+}
+.btn-wide {
+  height: 28px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+/* --- help ------------------------------------------------------------------ */
+
+.tv-help {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 3px;
+  padding: 0.5rem 0.7rem;
+}
+.tv-help summary { cursor: pointer; letter-spacing: 0.14em; font-weight: 600; }
+.tv-help dl { margin: 0.6rem 0 0; display: grid; gap: 0.28rem; }
+.tv-help dl > div { display: flex; gap: 0.7rem; }
+.tv-help dt { min-width: 3.4rem; color: #f0ede6; font-weight: 600; }
+.tv-help dd { margin: 0; }
+
+/* --- guide ----------------------------------------------------------------- */
+
+.guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(3, 4, 6, 0.86);
+  backdrop-filter: blur(3px);
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+}
+.guide {
+  width: min(720px, 100%);
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  background: #0b0d11;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.guide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.05);
+}
+.guide-head h2 { margin: 0; font: 700 0.8rem/1 var(--mono); letter-spacing: 0.24em; }
+.guide-close {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.24);
+  color: inherit;
+  width: 26px; height: 26px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.guide-list { overflow-y: auto; }
+
+.guide-row {
+  width: 100%;
+  display: flex;
+  gap: 0.9rem;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-left: 3px solid transparent;
+  color: inherit;
+  font-family: var(--mono);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.guide-row:hover, .guide-row:focus-visible {
+  background: rgba(255,255,255,0.06);
+  border-left-color: var(--ch-color);
+  outline: none;
+}
+.guide-row.is-current {
+  background: rgba(255,255,255,0.09);
+  border-left-color: var(--ch-color);
+}
+.guide-num {
+  font: 700 1.35rem/1 var(--mono);
+  color: var(--ch-color);
+  min-width: 2.2rem;
+}
+.guide-body { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.guide-name { font-weight: 700; font-size: 0.86rem; letter-spacing: 0.1em; }
+.guide-blurb { font-size: 0.7rem; color: rgba(255,255,255,0.45); margin-bottom: 0.25rem; }
+.guide-now, .guide-next {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.78);
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+.guide-next { color: rgba(255,255,255,0.4); }
+.guide-now em, .guide-next em {
+  font-style: normal;
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  min-width: 2.4rem;
+  color: var(--ch-color);
+}
+.guide-next em { color: rgba(255,255,255,0.3); }
+.guide-remaining { margin-left: auto; font-size: 0.62rem; color: rgba(255,255,255,0.35); }
+
+/* --- responsive ------------------------------------------------------------ */
+
+@media (max-width: 940px) {
+  .tv-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tv-aside { position: static; }
+  .tv-wordmark { text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .panel-btn, .tv-exit { transition: none; }
+}

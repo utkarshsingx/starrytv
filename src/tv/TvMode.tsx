@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CrtScreen } from './CrtScreen';
 import { Remote } from './Remote';
 import { Guide } from './Guide';
@@ -8,6 +8,7 @@ import { tvAudio } from './engine/audio';
 import { channels } from '../content/channels';
 import { allBooks } from '../content/library';
 import { primaryLink } from '../lib/links';
+import { SoundToggle } from '../components/SoundToggle';
 import { nowPlaying, formatClock } from './engine/schedule';
 import './tv.css';
 
@@ -40,7 +41,12 @@ export function TvMode({ onExit }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onExit]);
 
-  useEffect(() => () => tvAudio.setPower(false), []);
+  // NOTE: deliberately no `powerOff()` on unmount. The set's power is store
+  // state and is switched off by `exitTv`, which is the only way out of here.
+  // Hanging it off this component's teardown looked like belt and braces but
+  // React's StrictMode mounts, unmounts and remounts in development — so the
+  // teardown fired immediately after power-on, leaving the engine convinced the
+  // set was off and silently swallowing every tuning sequence after it.
 
   const channel = channels.find((c) => c.num === channelNum);
   const np = channel ? nowPlaying(channel) : null;
@@ -49,15 +55,31 @@ export function TvMode({ onExit }: Props) {
       ? allBooks.find((b) => b.title === np.programme.heading)
       : undefined;
 
+  // A programme ending and the next beginning is a real broadcast event, so it
+  // gets a real (very quiet) sound. Watching the programme id rather than a
+  // timer means it fires on the actual boundary — and only on a boundary, not
+  // on every one of the twice-a-second ticks above.
+  const programmeId = np?.programme.id;
+  const lastProgramme = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (lastProgramme.current && programmeId && lastProgramme.current !== programmeId) {
+      tvAudio.segmentChange();
+    }
+    lastProgramme.current = programmeId;
+  }, [programmeId]);
+
   return (
     <div className="tv-mode">
       <div className="tv-room" aria-hidden="true" />
 
       <header className="tv-topbar">
-        <button className="tv-exit" onClick={onExit} aria-label="Back to the Boring Edition">
-          <span aria-hidden="true">✕</span>
-          <span className="tv-exit-label">BORING MODE</span>
-        </button>
+        <div className="tv-topbar-left">
+          <button className="tv-exit" onClick={onExit} aria-label="Back to the Boring Edition">
+            <span aria-hidden="true">✕</span>
+            <span className="tv-exit-label">BORING MODE</span>
+          </button>
+          <SoundToggle />
+        </div>
         <div className="tv-wordmark">
           STARRY TV<span className="tv-wordmark-sub">THE NOT BORING EDITION</span>
         </div>

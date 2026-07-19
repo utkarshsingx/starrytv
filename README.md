@@ -119,10 +119,7 @@ This is the single detail that does the most work.
 turning the volume up does not re-render anything sixty times a second. Only the side panel
 subscribes.
 
-**Sound is synthesised, not loaded.** No audio files ship. `engine/audio.ts` builds the power thunk,
-the degauss shimmer, the 15.7 kHz flyback whine, button clicks and the static burst in Web Audio,
-all gated behind the first user gesture. The whine in particular does more for the illusion than any
-shader.
+**Sound is synthesised, not loaded.** No audio files ship — see the next section.
 
 **It gets out of the way when it should.** `prefers-reduced-motion` kills the static bursts, the
 ident wipe, the line-by-line reveal and most of the warp. If WebGL is missing or the context is
@@ -134,6 +131,71 @@ when the tab is hidden.
 real content is in the DOM from first paint, for crawlers, for screen readers, and for anyone whose
 GPU has decided today is not the day. The canvas also carries an `aria-live` region announcing each
 programme, because a canvas is otherwise opaque to assistive technology.
+
+---
+
+## The sound
+
+Not one audio file ships. Every noise the site makes is synthesised at the moment it is needed,
+which keeps the bundle honest and — more usefully — lets the flyback whine actually track the state
+of the tube rather than being a loop that happens to be playing.
+
+```
+src/tv/engine/audio/synth.ts   oscillators, envelopes, filtered noise, FM bells
+src/tv/engine/audio/bed.ts     renders a channel's ambient bed from a spec
+src/tv/engine/audio/index.ts   the buses, the electronics, and every event
+src/content/beds.data.ts       the twelve beds, as data  ← third file to edit
+```
+
+**Routing.** `master → { tvBus → { bedBus, sfxBus }, elecBus, pageBus }`. Two of those placements
+are deliberate: `elecBus` hangs off master rather than the TV bus, because muting a television does
+not stop its flyback transformer whining and neither does turning the volume down — putting the
+electronics behind the volume knob is the biggest realism miss available here. `pageBus` is
+independent for the same reason in reverse: the Boring Edition has no volume knob.
+
+**Every channel sounds different.** Each has an ambient bed — a drone, a noise texture, and one or
+two sparse melodic layers — specified as data in `beds.data.ts`. CINEMA is an empty auditorium
+twenty minutes early. ARCHIVE has a 3 Hz projector shutter. WEATHER is rain on a window. NIGHT is
+almost nothing at all. Beds crossfade on tune and duck when a programme changes.
+
+Three things to know before editing one:
+
+- Repeat intervals within a bed are deliberately coprime (13s against 26s against a 20s filter LFO)
+  and the engine jitters each one, so no two layers ever line up twice. Round them all to multiples
+  of four and you will hear a bar line, which is the thing that becomes unbearable.
+- `pulse` is the one layer that ignores the scale — it takes a literal `freq`. Retune the root and
+  you must retune any pulse by hand or it will sit at some arbitrary interval underneath everything.
+- Beds play under text people are reading. If you cannot decide, the answer is quieter and slower.
+
+**The electronics.** The 15.734 kHz line whistle is real NTSC. It carries four modulations — field
+rate AM, two beam-current breathing LFOs and a slow pitch drift — because a static sine reads as
+tinnitus and a modulated one reads as a machine. It gets no second harmonic: 2 × 15734 is above
+Nyquist at both 44.1 and 48 kHz, so it would alias down into an audible tone that sounds nothing
+like a television. Under it sit amplifier hiss and a mains hum bed, which carry "the set is on" for
+everyone who cannot hear 15.7 kHz.
+
+**Events are sequences, not sounds.** Power-on is a relay slamming with three contact bounces, the
+degauss coil jumping against the glass and buzzing as the thermistor heats, the flyback climbing
+from 6.2 kHz to line rate, and the amplifier thumping — about two seconds end to end. Changing
+channel is the audio cutting *first*, then snow, then two opposed sync sweeps (one rising sweep
+sounds like a musical gesture; two opposed ones sound like a machine hunting), then tear ticks, then
+a lock.
+
+**Anti-fatigue is most of the design.** The keypad's noise band is randomised on every press. The
+volume detent puts its pitch motion in a filter centre rather than an oscillator, so it can never
+land on a scale degree, and its gain *falls* slightly as level rises. The captions blips sit at a
+ratio of 1.42 — deliberately missing a fourth and a fifth — so they never sound like a jingle. The
+search keystroke has nothing above 3 kHz, is rate-limited to one per 35 ms, and only the space bar
+sounds different.
+
+**The Boring Edition is nearly silent, on purpose.** Paper and cheap office hardware: a drawer
+divider for a genre jump, a membrane key for a keystroke, a solenoid and a motor for print. There is
+deliberately no hover sound — every other sound on that page corresponds to something that
+physically moved, and hover is the only one with no moving part behind it.
+
+**There is an off switch**, in the top bar of both modes, and it persists. The site now makes noise
+in places people will not expect it, and the honest answer to that is a visible control rather than
+a quieter tick.
 
 ---
 

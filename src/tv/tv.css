@@ -2,7 +2,46 @@
    Not Boring mode — the set, the room, and the handset.
    ========================================================================== */
 
+/* ---------------------------------------------------------------------------
+   MATERIALS AND LIGHT
+
+   One rule governs everything below, and it is the one thing the previous
+   version got backwards: THERE IS NO LIGHT FROM ABOVE. The room is dark and the
+   only emitter of consequence is the tube itself — a cool area source sitting in
+   the plane of the front face. So the cabinet is brightest at the bezel and
+   falls away toward its edges, the TOP of the set is among the darkest surfaces
+   on it, and every highlight points back at the screen.
+
+   The default UI reflex — `inset 0 1px 0 rgba(255,255,255,.15)` along the top of
+   everything — asserts a ceiling lamp that is not in this scene, and it is what
+   made the old chassis read as a rounded rectangle rather than an object.
+
+   Second rule: the plastic is WARM (hue ~33deg) and the light is COOL (hue
+   ~210deg), so a lit gradient shifts hue as well as lightness. A ramp that keeps
+   one hue and only varies lightness reads as fog over a shape.
+   --------------------------------------------------------------------------- */
+
 .tv-mode {
+  /* 1990s consumer ABS: carbon black cut with iron oxide, and twenty years of
+     UV has pushed it warmer still. Not the blue-grey it was. */
+  --abs: #332f2a;
+  --abs-lo: #24211d;
+  --abs-dead: #1b1815;
+  --abs-skirt: #221f1a;
+  --recess: #16130f;
+  --void: #050403;
+
+  /* The illuminants. */
+  --tube-light: #96b2d0;
+  --table-bounce: #c49e6e;
+  --ambient: #5a6a80;
+
+  /* Grained ABS physically cannot make a white highlight; this is the ceiling. */
+  --break-sheen: #8a97a8;
+
+  --grille-steel: #26262a;
+  --dust: #7a6f5c;
+
   position: fixed;
   inset: 0;
   z-index: 50;
@@ -27,9 +66,14 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
+  /* The pool of light the tube throws into the room, tinted by whatever is
+     currently on air. `color-mix` keeps it a wash rather than a spotlight. */
   background:
-    radial-gradient(ellipse 70% 55% at 50% 38%, rgba(120, 150, 190, 0.13), transparent 70%),
+    radial-gradient(ellipse 62% 48% at 38% 40%,
+      color-mix(in srgb, var(--screen-light, #7ea8c8) 13%, transparent),
+      transparent 72%),
     linear-gradient(180deg, #0a0b10 0%, #07080d 40%, #050609 100%);
+  transition: background 0.6s ease-out;
 }
 
 /* The floor, and the shadow the set casts back onto the wall behind it. */
@@ -118,52 +162,174 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* Smaller than it was. A television is an object in a room, not a page
+     header — at full column width it stopped reading as a thing you could put
+     your hand on. */
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
 }
+
+/* ---------------------------------------------------------------------------
+   The cabinet: injection-moulded ABS, nominal wall 2.6mm.
+
+   Wall thickness governs every radius. The external edge break is one wall
+   thickness, which is why the perimeter catches a soft band rather than a 1px
+   line. Internal corners of a recess are (outer radius − wall) ≈ 0, so button
+   recesses and vent slots are near-square. Using the same radius inside and out
+   is the clearest possible signal that a shape was drawn rather than moulded.
+   --------------------------------------------------------------------------- */
 
 .tv-set {
+  --wall: 3px;
   position: relative;
-  border-radius: 22px 22px 16px 16px;
-  padding: clamp(14px, 1.7vw, 26px);
-  background:
-    linear-gradient(176deg, #55585e 0%, #3b3e44 18%, #2a2d33 55%, #1c1e23 100%);
+  isolation: isolate;
+
+  /* Elliptical, wider than tall, and tighter at the bottom where the skirt has
+     to meet the table. */
+  border-radius: 20px 20px 11px 11px / 15px 15px 8px 8px;
+  padding: clamp(13px, 1.6vw, 22px) clamp(12px, 1.5vw, 20px) clamp(11px, 1.3vw, 17px);
+
+  background-color: var(--abs);
+  background-image:
+    /* 1. THE TUBE. An area emitter in the plane of the front face, centred on
+          the screen, falling off fast — and carrying the colour of whatever is
+          currently on air. This is the light in this room, and the old chassis
+          had none of it. */
+    radial-gradient(120% 86% at 50% 33%,
+      color-mix(in srgb, var(--screen-light, #96b2d0) 26%, transparent) 0%,
+      color-mix(in srgb, var(--screen-light, #96b2d0) 14%, transparent) 27%,
+      color-mix(in srgb, var(--screen-light, #96b2d0) 5%, transparent) 47%,
+      transparent 72%),
+    /* 2. BOUNCE off the table below. Warm, weak, travelling upward, and it only
+          reaches the bottom of the skirt. */
+    linear-gradient(0deg,
+      rgba(196, 158, 110, 0.10) 0,
+      rgba(160, 130, 96, 0.04) 26px,
+      rgba(120, 100, 80, 0) 70px),
+    /* 3. The plastic's own ramp. Non-monotonic on purpose: brightest at the
+          bezel, darkest in the dead band above the skirt, lifting again at the
+          very bottom where the bounce arrives. */
+    linear-gradient(180deg,
+      var(--abs-lo) 0%,
+      var(--abs) 26%,
+      var(--abs-lo) 68%,
+      var(--abs-dead) 88%,
+      var(--abs-skirt) 100%);
+
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -3px 10px rgba(0, 0, 0, 0.7),
-    0 40px 90px rgba(0, 0, 0, 0.75),
-    0 6px 20px rgba(0, 0, 0, 0.5);
+    /* contact seam — nothing reaches it, so it is neutral black and tight */
+    0 2px 2px -1px rgba(0, 0, 0, 0.95),
+    /* occlusion under the set: no offset, long tail, cool because it is
+       ambient that got blocked */
+    0 14px 30px -8px rgba(7, 9, 17, 0.9),
+    /* the one genuine cast shadow, thrown down and back by the weak fill */
+    0 44px 70px -24px rgba(4, 5, 11, 0.85),
+    /* the edge break catching tube light along the sides, NOT along the top */
+    inset 2px 0 3px -2px rgba(150, 178, 208, 0.13),
+    inset -2px 0 3px -2px rgba(150, 178, 208, 0.13),
+    /* the top face is the furthest surface from the emitter and faces an unlit
+       ceiling — it is the darkest part of the object, not the brightest */
+    inset 0 3px 6px -3px rgba(0, 0, 0, 0.55);
 }
 
-/* Subtle moulded-plastic speckle. */
+/*
+   Mould grain (a fine pebble, cell ~0.2mm) is isotropic and sub-pixel here, so
+   it cannot be drawn literally — the old version drew it as vertical stripes,
+   which reads as brushed metal or a screen door. What you draw instead is its
+   consequence: a faint aperiodic luminance noise from periods that never line
+   up, at angles that are not orthogonal.
+*/
 .tv-set::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  opacity: 0.35;
+  opacity: 0.5;
   background-image:
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px);
+    repeating-linear-gradient(31deg, rgba(255, 255, 255, 0.014) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(-64deg, rgba(0, 0, 0, 0.022) 0 3px, transparent 3px 7px),
+    repeating-linear-gradient(7deg, rgba(255, 255, 255, 0.008) 0 5px, transparent 5px 11px);
 }
+
+/*
+   The shut line where the front cabinet meets the rear cover, and the dust that
+   has settled on the one upward-facing surface. Dust lands on top faces and in
+   crevices, never as a uniform overlay.
+*/
+.tv-set::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg,
+      rgba(122, 111, 92, 0.05) 0,
+      rgba(122, 111, 92, 0.018) 3px,
+      transparent 7px);
+}
+
+/* ---------------------------------------------------------------------------
+   The tube.
+
+   Three nested rectangles doing three different jobs, where there used to be
+   one: the BEZEL OPENING (hard plastic corner) reveals the GLASS (a wide
+   elliptical radius, because it is a section of a sphere) which is itself larger
+   than the PICTURE (inset behind the black matrix band). Collapsing these into
+   a single rectangle is what makes a screen read as a picture of a screen — the
+   raster of a real CRT never reaches the edge of its own glass.
+   --------------------------------------------------------------------------- */
 
 .tv-bezel {
   position: relative;
-  border-radius: 18px;
-  padding: clamp(10px, 1.4vw, 22px);
-  background: linear-gradient(170deg, #1b1d21, #0a0b0d 60%, #141518);
+  /* Hard plastic corner, and an internal radius much tighter than the
+     cabinet's external one. */
+  border-radius: 9px;
+  padding: clamp(9px, 1.2vw, 18px);
+  background:
+    radial-gradient(90% 70% at 50% 40%, #23262b 0%, #15171a 55%, #0d0e10 100%);
   box-shadow:
-    inset 0 3px 12px rgba(0, 0, 0, 0.95),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+    /* the 1.5mm air gap where bezel meets glass — pure black, nothing
+       reaches in there */
+    inset 0 0 0 1px #000,
+    /* the lit chamfer of the opening, catching the picture's own light from
+       inside rather than a lamp from outside */
+    inset 0 0 14px -2px rgba(140, 185, 225, 0.09),
+    inset 0 2px 7px rgba(0, 0, 0, 0.9);
 }
 
 .crt-screen {
   position: relative;
   aspect-ratio: 4 / 3;
-  border-radius: 5% / 6%;
+  /* The glass: a wide ellipse, because the faceplate is a section of a sphere
+     with a radius around 1.5x the tube diagonal. */
+  border-radius: 5.5% / 6.6%;
   overflow: hidden;
-  background: #000;
+  background: #0b0d0c;
   box-shadow:
     inset 0 0 40px rgba(0, 0, 0, 0.95),
-    0 0 34px rgba(120, 200, 255, 0.055);
+    /* the picture's light spilling out onto the bezel around it */
+    0 0 30px rgba(120, 200, 255, 0.05);
+}
+
+/*
+   The perimeter black band: the internal graphite coating and the shadow-mask
+   frame, seen through the glass. It is an opaque frame with a short ramp, not a
+   soft symmetric vignette — and it is what insets the raster from the glass.
+*/
+.crt-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 2px #050706,
+    inset 0 0 7px 3px rgba(5, 7, 6, 0.92),
+    inset 0 0 16px 6px rgba(5, 7, 6, 0.45);
 }
 
 .crt-canvas {
@@ -231,15 +397,34 @@
   pointer-events: none;
 }
 
-/* The sheen of the glass itself — a fixed highlight that does not move with the
-   picture, which is what tells your eye there is a physical surface there. */
+/*
+   The glass itself — a fixed reflection that does not move with the picture,
+   which is what tells your eye there is a physical surface in front of it.
+
+   One lamp, in front of the set, above it and left of centre. Everything here
+   derives from that one position; a symmetric highlight means light arriving
+   equally from everywhere, which means no light source at all.
+
+   Nothing here is specular. The faceplate is acid-etched, so a reflection is a
+   soft field with no locatable edge — a crisp highlight reads as polished glass,
+   which reads as a modern flat panel. Everything in front of the phosphor adds
+   light and never subtracts it, hence `screen`.
+*/
 .crt-glass {
   position: absolute;
   inset: 0;
+  z-index: 3;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 46% 34% at 27% 16%, rgba(255, 255, 255, 0.085), transparent 62%),
-    radial-gradient(ellipse 34% 22% at 82% 88%, rgba(190, 220, 255, 0.045), transparent 66%);
+    /* primary reflection, diffused by the etch */
+    radial-gradient(ellipse 52% 38% at 31% 17%, rgba(196, 216, 238, 0.075), transparent 68%),
+    /* its warmer core, the bulb rather than the ceiling it bounced off */
+    radial-gradient(ellipse 20% 13% at 29% 15%, rgba(244, 232, 210, 0.05), transparent 70%),
+    /* the weak secondary from behind the viewer */
+    radial-gradient(ellipse 36% 24% at 79% 86%, rgba(150, 178, 208, 0.035), transparent 72%),
+    /* the green-grey pooling in the corners, where the optical path through the
+       glass is longest */
+    radial-gradient(ellipse 74% 70% at 50% 50%, transparent 58%, rgba(30, 52, 40, 0.34) 100%);
   mix-blend-mode: screen;
 }
 
@@ -255,41 +440,85 @@
   border-radius: 2px;
 }
 
+/*
+   Below the tube: a perforated steel speaker grille and the pad-printed
+   wordmark. The grille must be a different colour AND a different specular
+   character from the ABS around it — steel is cooler and more neutral and takes
+   a narrow, definite highlight where grained plastic takes a broad matte one.
+   Matching them is what collapses two materials into one.
+*/
+.tv-underbar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.7rem;
+  padding: 0 0.2rem;
+}
+
+.tv-grille {
+  flex: 1;
+  height: 15px;
+  border-radius: 2px;
+  background-color: var(--grille-steel);
+  background-image:
+    /* punched holes on a staggered pitch; the burr is the rolled entry lip */
+    radial-gradient(circle at 2px 2px, #050403 0.9px, rgba(109, 117, 126, 0.16) 1.5px, transparent 1.9px),
+    radial-gradient(circle at 5px 5px, #050403 0.9px, rgba(109, 117, 126, 0.16) 1.5px, transparent 1.9px);
+  background-size: 6px 6px, 6px 6px;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.8),
+    inset 0 -1px 0 rgba(138, 151, 168, 0.06);
+}
+
 .tv-brand {
-  text-align: center;
-  margin-top: 0.85rem;
-  font: 800 0.95rem/1 var(--mono);
-  letter-spacing: 0.42em;
-  color: rgba(255, 255, 255, 0.62);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.9);
+  font: 800 0.7rem/1 var(--mono);
+  letter-spacing: 0.34em;
+  /* Pad-printed metallic ink on a polished (ungrained) logo pad. Polished ABS
+     reads darker and glossier than the grained plastic around it, so the pad is
+     a dark patch carrying a bright mark, not a raised emboss. */
+  color: rgba(152, 160, 168, 0.72);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
 }
 
 /* --- front panel ----------------------------------------------------------- */
 
+/*
+   The recessed control panel. Its internal corners are (outer − wall) ≈ 0, so
+   3px, not the cabinet's 20px. Dust settles on the bottom ledge of the recess
+   and nowhere else in it.
+*/
 .tv-panel {
-  margin-top: 0.9rem;
+  margin-top: 0.7rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
-  padding: 0.6rem 0.8rem;
-  border-radius: 8px;
-  background: linear-gradient(180deg, #26282d, #16181c);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -2px 6px rgba(0,0,0,0.6);
+  padding: 0.5rem 0.7rem;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--recess) 0%, #1d1a16 60%, #262119 100%);
+  box-shadow:
+    /* the wall of the recess, dark at the top where it faces down */
+    inset 0 2px 4px rgba(0, 0, 0, 0.85),
+    /* the bottom ledge faces up into the tube and collects dust */
+    inset 0 -1px 0 rgba(122, 111, 92, 0.14);
 }
 
 .panel-btn {
-  min-width: 40px;
-  height: 30px;
-  padding: 0 0.5rem;
-  font: 600 0.68rem/1 var(--mono);
-  color: #d7d5cf;
-  background: linear-gradient(180deg, #3d4046, #24262b);
-  border: 1px solid rgba(0, 0, 0, 0.6);
-  border-top-color: rgba(255, 255, 255, 0.18);
-  border-radius: 4px;
+  min-width: 34px;
+  height: 26px;
+  padding: 0 0.45rem;
+  font: 600 0.6rem/1 var(--mono);
+  color: #b8b4ac;
+  background: linear-gradient(168deg, #3a3630 0%, #2a2621 55%, #1c1915 100%);
+  border: 0;
+  border-radius: 3px;
   cursor: pointer;
+  box-shadow:
+    inset 1px 1px 1px -0.5px rgba(150, 178, 208, 0.16),
+    inset -1px -1px 2px -1px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.6);
   transition: transform 0.06s, filter 0.12s;
 }
 .panel-btn:hover { filter: brightness(1.25); }
@@ -325,16 +554,29 @@
 
 .tv-floor-reflection {
   display: block;
-  width: 78%;
-  height: clamp(56px, 10vh, 110px);
-  margin: -6px auto 0;
-  transform: scaleX(1.05);
-  filter: blur(6px) saturate(0.8) brightness(1.15);
-  opacity: 0.85;
+  /* Narrower than the set, not wider: you are seeing the floor at a glancing
+     angle, so the reflection is foreshortened and it sits under the tube rather
+     than under the whole cabinet. */
+  width: 58%;
+  height: clamp(38px, 6vh, 62px);
+  margin: -4px auto 0;
+  /* Heavier blur than feels necessary. A waxed floorboard is nowhere near a
+     mirror, and any legible detail in a reflection instantly reads as a second
+     screen lying on the ground. */
+  filter: blur(11px) saturate(0.7) brightness(0.85);
+  opacity: 0.5;
   mix-blend-mode: screen;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), transparent 88%);
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), transparent 88%);
+  /* Fades on both axes: light falls off with distance, and the pool narrows as
+     it goes. A hard-edged rectangle of glow is the giveaway. */
+  -webkit-mask-image:
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 76%),
+    linear-gradient(to right, transparent, #000 22%, #000 78%, transparent);
+  mask-image:
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 76%),
+    linear-gradient(to right, transparent, #000 22%, #000 78%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 
 .tv-ports {
@@ -429,50 +671,165 @@
 
 /* --- the handset ----------------------------------------------------------- */
 
+/* ---------------------------------------------------------------------------
+   The handset.
+
+   It used to be 212x385 — a 1.5:1 box, which is a calculator. A remote is a
+   long thin object; below about 2.7:1 it stops reading as one.
+
+   Its light comes from the tube, which is up and to the LEFT of where the
+   handset sits, so the lit flank is the left one and the tail falls into the
+   dark. Two rules do most of the work here:
+
+     - Specular takes the colour of the LIGHT; diffuse takes the colour of the
+       object. That is why the shine on the red power key is blue-white and not
+       pink — a tinted specular is the most common physical error in rendered
+       hardware.
+     - The keypad is ONE moulded silicone mat, not ten separate parts. It reads
+       that way when the gaps show the mat rather than black, and when a key's
+       base tone equals the mat's top tone. A 1px dark outline around each key
+       converts one moulding into ten, and nothing you do afterwards recovers it.
+   --------------------------------------------------------------------------- */
+
 .remote {
+  --rem-face-hi: #4e535c;
+  --rem-face-mid: #2e3239;
+  --rem-face-lo: #17191d;
+  --rem-mat: #1a1d21;
+  --rem-key-hi: #454a52;
+  --rem-key-lo: #24272c;
+  --rem-spec: #cddbee;
+
   align-self: center;
-  width: min(212px, 100%);
-  padding: 0.9rem 0.75rem 1rem;
-  border-radius: 16px;
-  background: linear-gradient(172deg, #4a4d53 0%, #34373d 30%, #23262b 100%);
+  /* ~2.7:1. Below that a handset stops reading as a handset and starts reading
+     as a calculator, which is what the 1.5:1 version was. */
+  width: min(138px, 100%);
+  padding: 0.9rem 0.5rem 1.7rem;
+  /* A remote is waisted, not a rounded rectangle: wider at the head. */
+  border-radius: 26px 26px 20px 20px / 34px 34px 26px 26px;
+  background:
+    linear-gradient(104deg,
+      var(--rem-face-hi) 0%,
+      var(--rem-face-mid) 34%,
+      var(--rem-face-lo) 100%);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -3px 8px rgba(0, 0, 0, 0.65),
-    0 22px 44px rgba(0, 0, 0, 0.6);
+    /* the mould parting line and shadowed side wall — a near-black hairline at
+       the outermost edge, not a white one */
+    inset 0 0 0 1px #0c0e11,
+    /* the lit roll-over chamfer, on the LEFT flank only, facing the tube */
+    inset 2px 0 2px -1px rgba(126, 136, 148, 0.5),
+    /* the tail turning away into the dark */
+    inset -3px -4px 10px -3px rgba(0, 0, 0, 0.7),
+    0 3px 3px -2px rgba(0, 0, 0, 0.9),
+    0 20px 34px -10px rgba(4, 5, 11, 0.75);
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.55rem;
+  /* Lying on a surface rather than pinned to a page. */
+  transform: rotate(-1.4deg);
 }
 
+/* Spark-eroded mould texture: the same isotropic trick as the cabinet. */
+.remote::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image:
+    repeating-linear-gradient(23deg, rgba(255, 255, 255, 0.013) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(-71deg, rgba(0, 0, 0, 0.02) 0 3px, transparent 3px 7px);
+}
+
+/* The IR emitter window in the head: dark red translucent plastic, and the
+   darkest tone anywhere on the object. */
 .remote-brand {
+  position: relative;
   text-align: center;
-  font: 700 0.55rem/1 var(--mono);
-  letter-spacing: 0.34em;
-  color: rgba(255, 255, 255, 0.34);
+  font: 700 0.5rem/1 var(--mono);
+  letter-spacing: 0.3em;
+  color: rgba(200, 208, 219, 0.3);
+  padding-top: 0.5rem;
+}
+.remote-brand::before {
+  content: '';
+  position: absolute;
+  top: -0.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 7px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #35110d, #1e0605);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.8), 0 0 3px rgba(53, 17, 13, 0.6);
 }
 
+/* The battery door seam at the tail. */
+.remote::before {
+  content: '';
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: 0.55rem;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: 0 1px 0 rgba(126, 136, 148, 0.07);
+  pointer-events: none;
+}
+
+/*
+   A rubber key. No border: a moulded silicone key has no edge against its own
+   mat, and drawing one turns a single moulding into ten separate parts. The
+   large elliptical radius is the mould's doing — silicone will not hold a sharp
+   corner. Base tone deliberately equals the mat's top tone, which is what fuses
+   key and web into one object.
+
+   Nothing here goes above ~#4e535c. The old keys were #e6e4df — 90% luminance
+   in a room lit by one dim CRT, which implies a lamp that is not in the scene.
+*/
 .btn {
   font-family: var(--mono);
-  border: 1px solid rgba(0, 0, 0, 0.65);
-  border-top-color: rgba(255, 255, 255, 0.22);
-  background: linear-gradient(180deg, #e6e4df, #b9b7b1);
-  color: #1b1c1f;
-  border-radius: 5px;
+  border: 0;
+  background: linear-gradient(168deg, var(--rem-key-hi) 0%, var(--rem-key-lo) 100%);
+  color: #c8d0db;
+  border-radius: 42% / 34%;
   cursor: pointer;
+  box-shadow:
+    /* the lit crown of the dome, facing up-left toward the tube */
+    inset 1px 1px 1px -0.5px rgba(205, 219, 238, 0.24),
+    /* the far side of the dome rolling away */
+    inset -1px -2px 2px -1px rgba(0, 0, 0, 0.6),
+    /* the key sitting proud of the mat, as a drop shadow onto the mat and not
+       a gap cut through it */
+    0 1.5px 2px rgba(0, 0, 0, 0.55);
   transition: transform 0.06s, filter 0.12s, box-shadow 0.12s;
 }
-.btn:hover { filter: brightness(1.07); }
-.btn:active { transform: translateY(1.5px); filter: brightness(0.88); }
+.btn:hover { filter: brightness(1.14); }
+.btn:active {
+  transform: translateY(1.5px);
+  filter: brightness(0.86);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+}
 .btn:focus-visible { outline: 2px solid #7cd4ff; outline-offset: 2px; }
 
+/* The power key sits in its own recess, one step down from the face. */
 .btn-power {
   align-self: center;
-  width: 42px; height: 42px;
+  width: 38px; height: 38px;
   border-radius: 50%;
-  background: linear-gradient(180deg, #d93a2b, #8e1d13);
-  border-color: rgba(0,0,0,0.7);
+  /* Red diffuse under cool light: dark, and never a saturated pillar-box red. */
+  background: radial-gradient(circle at 36% 30%, #74241b 0%, #4a120c 58%, #220706 100%);
   display: grid;
   place-items: center;
+  box-shadow:
+    /* the wall of the recess it is sunk into */
+    0 0 0 2px rgba(0, 0, 0, 0.55),
+    0 0 0 3px rgba(126, 136, 148, 0.07),
+    /* specular takes the colour of the LIGHT, not the object — blue-white,
+       never pink */
+    inset 1px 1px 2px -0.5px rgba(205, 219, 238, 0.3),
+    inset -1px -2px 3px -1px rgba(0, 0, 0, 0.75);
 }
 .power-glyph {
   width: 15px; height: 15px;
@@ -489,66 +846,119 @@
   width: 2.5px; height: 9px;
   background: rgba(255, 235, 230, 0.9);
 }
-.btn-power.is-on { box-shadow: 0 0 16px rgba(255, 80, 60, 0.75); }
+/*
+   When the set is on, the key is a shade warmer — it has been under a thumb and
+   it is closer to the tube. It does NOT glow: a remote's power button is moulded
+   red plastic with no lamp behind it, and a halo around it is the same mistake
+   as a white highlight on a top edge.
+*/
+.btn-power.is-on {
+  background: radial-gradient(circle at 36% 30%, #8b2c21 0%, #56160f 58%, #280907 100%);
+}
 
+/*
+   The keypad sits in a shallow dish — one step down from the face — and the
+   dish's floor IS the silicone mat showing between the keys. Internal corners
+   of a moulded recess are near-square, hence 3px and not the body's 26px.
+*/
 .keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.4rem;
+  gap: 5px;
+  padding: 5px;
+  border-radius: 3px;
+  background: var(--rem-mat);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.7),
+    inset 0 -1px 0 rgba(126, 136, 148, 0.05);
 }
 .btn-num {
-  height: 34px;
-  font-size: 0.95rem;
+  height: 26px;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 .btn-zero { grid-column: 2; }
 
+/* The raised nib on the 5 key. Every keypad ever made has one. */
+.btn-num:nth-child(5) { position: relative; }
+.btn-num:nth-child(5)::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: rgba(205, 219, 238, 0.16);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
 .remote-lower {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.4rem;
+  gap: 5px;
   align-items: center;
 }
+
+/* The rockers are hard light-grey ABS, not rubber — a different material, so a
+   different radius, a tighter terminator, and a real gap into the case. */
 .rocker {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.3rem 0;
-  border-radius: 20px;
-  background: rgba(0, 0, 0, 0.28);
+  gap: 2px;
+  padding: 3px 2px;
+  border-radius: 3px;
+  background: var(--rem-mat);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.65);
 }
 .btn-rocker {
   width: 100%;
-  height: 26px;
-  font-size: 0.8rem;
+  height: 20px;
+  font-size: 0.7rem;
   font-weight: 700;
-  border-radius: 13px;
+  border-radius: 4px;
+  /* Light-grey ABS: about 70% reflectance, so it can go brighter than the
+     rubber, but the steep dome still puts a hard terminator on it. */
+  background: linear-gradient(170deg, #aeb4bd 0%, #868d96 55%, #5f656e 100%);
+  color: #1c2026;
+  box-shadow:
+    inset 1px 1px 1px -0.5px rgba(230, 240, 252, 0.5),
+    inset -1px -1px 2px -1px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.6);
 }
 .rocker-label {
-  font: 700 0.52rem/1 var(--mono);
-  letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.55);
+  font: 700 0.44rem/1 var(--mono);
+  letter-spacing: 0.1em;
+  /* Pad-printed legend: never pure white, and slightly imperfect. */
+  color: rgba(200, 208, 219, 0.42);
 }
 .remote-mid {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 5px;
 }
 .btn-small {
-  height: 26px;
-  font-size: 0.62rem;
+  height: 20px;
+  font-size: 0.52rem;
   font-weight: 700;
 }
 .btn-small.is-active {
-  background: linear-gradient(180deg, #7cfc9a, #43b96a);
-  color: #06170c;
+  /* An indicator lit from behind, not a coloured plastic key. */
+  background: linear-gradient(168deg, #2f6b45, #1d4530);
+  color: #b6ffcf;
+  box-shadow:
+    inset 1px 1px 1px -0.5px rgba(182, 255, 207, 0.35),
+    inset -1px -2px 2px -1px rgba(0, 0, 0, 0.55),
+    0 0 5px rgba(90, 220, 140, 0.22),
+    0 1.5px 2px rgba(0, 0, 0, 0.55);
 }
 .btn-wide {
-  height: 28px;
-  font-size: 0.62rem;
+  height: 22px;
+  font-size: 0.52rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
 }
 
 /* --- help ------------------------------------------------------------------ */

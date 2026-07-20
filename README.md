@@ -134,6 +134,50 @@ programme, because a canvas is otherwise opaque to assistive technology.
 
 ---
 
+## The hardware
+
+The set and the handset are DOM and CSS — no 3D, no images. One rule governs all
+of it, and it is the one the first version got backwards:
+
+**There is no light from above.** The room is dark and the only emitter is the tube. So the cabinet
+is brightest at the bezel and falls away toward its edges, the *top* of the set is among the darkest
+surfaces on it, and every highlight points back at the screen. The reflexive
+`inset 0 1px 0 rgba(255,255,255,.15)` along the top of a UI element asserts a ceiling lamp that is
+not in this scene, and it was what made the old chassis read as a rounded rectangle rather than an
+object.
+
+Everything else follows from that, or from how the thing was made:
+
+- **The plastic is warm, the light is cool.** 1990s consumer ABS is carbon black cut with iron
+  oxide, around hue 33°, and UV has pushed it warmer still. The light landing on it is ~7000 K. So a
+  lit gradient shifts *hue*, not just lightness — a ramp that holds one hue reads as fog over a shape.
+- **Wall thickness governs every radius.** Nominal 2.6 mm ABS. External corners are elliptical and
+  wider than tall; the internal corner of any recess is (outer − wall) ≈ 0, so the control panel and
+  keypad wells are near-square at 3 px. One radius used both inside and out is the clearest possible
+  tell that a shape was drawn rather than moulded.
+- **Mould grain is isotropic and sub-pixel**, so it cannot be drawn literally. The old version drew
+  it as vertical stripes, which reads as brushed metal. What you draw is its consequence: a faint
+  aperiodic noise from periods that never line up, at angles that are not orthogonal.
+- **Specular takes the colour of the light; diffuse takes the colour of the object.** This is why
+  the shine on the red power key is blue-white and not pink.
+- **A rubber keypad is one moulded mat**, not ten parts. It reads that way when the gaps show the mat
+  rather than black and a key's base tone equals the mat's top tone. A 1 px outline around each key
+  destroys it and nothing afterwards recovers it.
+- **Contact, occlusion and cast shadow are three different things.** Contact is neutral black and
+  tight because nothing reaches the seam; occlusion is cool because it is blocked ambient; the cast
+  shadow is offset and directional. One uniform drop shadow asserts a constant gap between object and
+  surface — i.e. a sticker.
+- **Three nested rectangles at the tube**, where there used to be one: the bezel opening reveals the
+  glass, which is larger than the picture. The raster of a real CRT never reaches the edge of its own
+  glass, and collapsing them is what makes a screen read as a picture of a screen.
+- **The room takes the colour of what is on.** `--screen-light` is set from the current channel's
+  tint, so the cabinet, the bezel chamfer and the pool on the floor all shift when you change
+  channel. A fixed lamp colour is a lamp that is not in the scene.
+
+Specs derived from a physical-materials study; the same discipline as the audio, applied to light.
+
+---
+
 ## The sound
 
 Not one audio file ships. Every noise the site makes is synthesised at the moment it is needed,

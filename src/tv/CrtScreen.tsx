@@ -158,10 +158,7 @@ export function CrtScreen({ floorRef }: Props) {
         if (fctx) {
           fctx.clearRect(0, 0, floor.width, floor.height);
           fctx.save();
-          // Pitched brighter than feels right on paper: the source is dark text
-          // cards on a dark set, so the reflection has very little to work with
-          // before CSS blurs and fades it further.
-          fctx.globalAlpha = 0.8 * Math.min(1, pf.scale[1]);
+          fctx.globalAlpha = 0.5 * Math.min(1, pf.scale[1]);
           fctx.translate(floor.width / 2, floor.height / 2);
           fctx.scale(pf.scale[0], -pf.scale[1]);
           fctx.drawImage(src, -floor.width / 2, -floor.height / 2, floor.width, floor.height);

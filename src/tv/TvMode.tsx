@@ -70,7 +70,21 @@ export function TvMode({ onExit }: Props) {
   }, [programmeId]);
 
   return (
-    <div className="tv-mode">
+    /*
+      The room's light comes from the tube, so the colour of the room is the
+      colour of what is on. Handing the current channel's tint to CSS means the
+      cabinet, the bezel chamfer and the pool on the floor all shift when you
+      change channel — violet on POETRY, red on ADVERTS — instead of the set
+      being lit by an imaginary fixed lamp.
+    */
+    <div
+      className="tv-mode"
+      style={
+        {
+          '--screen-light': power && channel ? channel.color : '#3a4048',
+        } as React.CSSProperties
+      }
+    >
       <div className="tv-room" aria-hidden="true" />
 
       <header className="tv-topbar">
@@ -95,7 +109,11 @@ export function TvMode({ onExit }: Props) {
               <CrtScreen floorRef={floorRef} />
             </div>
 
-            <div className="tv-brand">STARRY</div>
+            <div className="tv-underbar" aria-hidden="true">
+              <span className="tv-grille" />
+              <span className="tv-brand">STARRY</span>
+              <span className="tv-grille" />
+            </div>
 
             <div className="tv-panel" role="group" aria-label="Television front panel">
               <button className="panel-btn" onClick={() => press({ type: 'VOLUME_DOWN' })} aria-label="Volume down">

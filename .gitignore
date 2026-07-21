@@ -31,3 +31,6 @@ public/schedule/
 *.njsproj
 *.sln
 *.sw?
+
+# TypeScript incremental build state
+*.tsbuildinfo

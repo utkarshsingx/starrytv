@@ -4,6 +4,7 @@ import { linksFor } from '../lib/links';
 import { SoundToggle } from '../components/SoundToggle';
 import { HubControls } from './HubControls';
 import { TvLink } from './TvLink';
+import { AccountChip } from './AccountChip';
 import type { Book } from '../types';
 
 /**
@@ -36,6 +37,7 @@ export function BoringEdition() {
           {bookCount} books · {channels.length} channels
         </span>
         <SoundToggle />
+        <AccountChip />
       </header>
 
       <div className="boring-layout">

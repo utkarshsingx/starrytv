@@ -10,18 +10,27 @@
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
     "baseline": "node scripts/fps-baseline.mjs",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:migrate:status": "node scripts/migrate.mjs --status",
+    "seed:admin": "node scripts/seed-admin.mjs",
     "test:e2e": "node --test test/*.test.mjs"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.0.2",
+    "google-auth-library": "^9.15.1",
+    "jose": "^6.2.4",
     "next": "^16.2.11",
+    "postgres": "^3.4.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "server-only": "^0.0.1",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "dotenv": "^17.4.2",
     "oxlint": "^1.71.0",
     "playwright": "^1.61.1",
     "typescript": "~6.0.2"

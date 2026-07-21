@@ -44,7 +44,30 @@
 }
 .boring-topbar-brand { font-weight: 700; color: var(--ink); }
 .boring-topbar-sep { color: var(--ink-faint); }
+/* Pushes everything after it — the sound toggle and the account chip — to the
+   right-hand end of the bar. */
 .boring-topbar-right { margin-left: auto; color: var(--ink-faint); }
+
+.account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  white-space: nowrap;
+}
+.account-chip-link {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.account-chip-link:hover { color: var(--ink); }
+.account-chip-cta {
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  padding: 0.25rem 0.6rem;
+  font-size: 11px;
+}
+.account-chip-cta:hover { background: var(--ink); color: var(--paper); }
 
 /* --- layout ---------------------------------------------------------------- */
 

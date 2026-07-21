@@ -35,3 +35,4 @@ public/schedule/
 # TypeScript incremental build state
 *.tsbuildinfo
 .env*
+!.env.example

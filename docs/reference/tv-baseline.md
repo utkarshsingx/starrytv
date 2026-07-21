@@ -85,6 +85,28 @@ claim is *no regression, and Firefox is no longer shedding*, not *the port made 
 **Playwright's Firefox crashes intermittently** during `page.evaluate` — roughly one run in three,
 both before and after the port. It is a harness flake, not a site defect; retry the run.
 
+## Deployed (criterion 10) — and one thing that only failed in production
+
+Live on `starrytv.vercel.app`. Verified there: 100 book articles server-rendered with no
+JavaScript (538,578 bytes, against 1,585 and zero books on the old SPA); `/tv`, `/sitemap.xml`,
+`/robots.txt` and `/schedule/current.json` all 200.
+
+**The manifest compression question is settled: the CDN brotli-compresses it — 50,759 bytes against
+134,102 raw.** `next start` serves it uncompressed locally, which is why this had to be measured on
+the real deployment rather than assumed.
+
+**The first production deploy 404'd every route**, including the hub. The Vercel project had been
+created for the Vite build with Framework Preset "Other" and output directory `public` — settings
+that live in the Vercel project rather than the repo, and that override framework auto-detection.
+The build produced `.next` correctly and Vercel then served the `public/` folder, which contains one
+favicon. Fixed by pinning `"framework": "nextjs"` in `vercel.json`, in version control rather than
+the dashboard.
+
+Worth noting as a class of failure: **nothing local could have caught this.** `next build`,
+`next start`, the test suite and the fps harness all exercise the app, never the hosting
+configuration. Preview deploys would have caught it, but Vercel puts previews behind SSO by default,
+so an unauthenticated check against a preview URL returns a login redirect rather than the site.
+
 ## A bug the port surfaced: the WebGL fallback was painting nothing
 
 Worth recording, because it was invisible in exactly the way the whole

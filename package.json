@@ -13,7 +13,8 @@
     "db:migrate": "node scripts/migrate.mjs",
     "db:migrate:status": "node scripts/migrate.mjs --status",
     "seed:admin": "node scripts/seed-admin.mjs",
-    "test:e2e": "node --test test/*.test.mjs"
+    "test:e2e": "node --test test/*.test.mjs",
+    "seed:catalogue": "tsx scripts/seed-catalogue.mjs"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
@@ -33,6 +34,7 @@
     "dotenv": "^17.4.2",
     "oxlint": "^1.71.0",
     "playwright": "^1.61.1",
+    "tsx": "^4.23.1",
     "typescript": "~6.0.2"
   }
 }

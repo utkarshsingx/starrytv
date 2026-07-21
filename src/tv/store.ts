@@ -1,11 +1,22 @@
+'use client';
+
 import { create } from 'zustand';
-import { channels } from '../content/channels';
+import type { Channel } from '../types';
 import { tvAudio } from './engine/audio';
+import { MINIMAL_CHANNELS } from './minimal-schedule';
+import { loadSchedule, type ScheduleSource } from './schedule-manifest';
 
 /**
  * All TV state lives here, deliberately outside React's render tree — the CRT
  * canvas runs its own rAF loop at 60fps and must never be driving re-renders.
  * Components subscribe to the slices they actually paint.
+ *
+ * The dial itself now lives here too. It used to be a module-scope
+ * `import { channels } from '../content/channels'`, which was the single line
+ * welding three hundred kilobytes of book and programme prose into every client
+ * bundle — downloaded and parsed by every visitor, including the ones who never
+ * switched the set on. The schedule is fetched instead (`schedule-manifest.ts`),
+ * and this store is where it lands.
  */
 
 export type Osd =
@@ -15,6 +26,15 @@ export type Osd =
   | { kind: 'message'; text: string };
 
 type TvState = {
+  /**
+   * The dial. Starts as the bundled minimum so that every consumer has a real
+   * array to work with from the first render — there is no "channels are not
+   * loaded yet" state to handle at each call site, only a schedule that gets
+   * better once the manifest lands.
+   */
+  channels: Channel[];
+  scheduleSource: ScheduleSource;
+
   power: boolean;
   channelNum: number;
   volume: number;
@@ -34,6 +54,7 @@ type TvState = {
 
   osd: Osd;
 
+  loadManifest: () => Promise<void>;
   setPower: (on: boolean) => void;
   togglePower: () => void;
   setChannel: (num: number) => void;
@@ -49,21 +70,34 @@ type TvState = {
   clearOsd: () => void;
 };
 
-const numbers = channels.map((c) => c.num).sort((a, b) => a - b);
-const FIRST = numbers[0] ?? 2;
+/** Where the dial rests on a set that has just been unboxed. */
+const FIRST = 2;
 
-/** Read ?ch=07 so channels are deep-linkable. */
+const dialOf = (list: Channel[]) => list.map((c) => c.num).sort((a, b) => a - b);
+
+/**
+ * Read ?ch=07 so channels are deep-linkable.
+ *
+ * This can no longer check the number against the real dial, because the dial
+ * has not been fetched yet — so it accepts any plausible channel number and
+ * `loadManifest` reconciles it once the schedule is in. A number that turns out
+ * not to exist snaps to the first real channel rather than leaving the set
+ * tuned to nothing.
+ */
 function initialChannel(): number {
   if (typeof window === 'undefined') return FIRST;
   const raw = new URLSearchParams(window.location.search).get('ch');
   const n = raw ? parseInt(raw, 10) : NaN;
-  return numbers.includes(n) ? n : FIRST;
+  return Number.isInteger(n) && n >= 0 && n < 100 ? n : FIRST;
 }
 
 let osdTimer: ReturnType<typeof setTimeout> | undefined;
 let keypadTimer: ReturnType<typeof setTimeout> | undefined;
 
 export const useTv = create<TvState>((set, get) => ({
+  channels: MINIMAL_CHANNELS,
+  scheduleSource: 'minimal',
+
   power: false,
   channelNum: initialChannel(),
   volume: 0.7,
@@ -76,17 +110,35 @@ export const useTv = create<TvState>((set, get) => ({
   poweredAt: Date.now(),
   osd: { kind: 'none' },
 
+  loadManifest: async () => {
+    // Already holding the real schedule — a second trip to /tv in the same
+    // session should not refetch it. Cache and minimal both retry, because
+    // either means the network was unavailable and it may not be any more.
+    if (get().scheduleSource === 'network') return;
+
+    const { channels, source } = await loadSchedule();
+
+    // The URL asked for a channel before we knew which ones exist. Honour it if
+    // it turned out to be real; otherwise land on the first channel rather than
+    // sitting on a number that will never produce a picture.
+    const dial = dialOf(channels);
+    const wanted = get().channelNum;
+    const channelNum = dial.includes(wanted) ? wanted : (dial[0] ?? FIRST);
+
+    set({ channels, scheduleSource: source, channelNum });
+  },
+
   setPower: (on) => {
     set({ power: on, tunedAt: Date.now(), poweredAt: Date.now(), staticLevel: on ? 1 : 0 });
     if (on) {
-      const c = channels.find((x) => x.num === get().channelNum);
+      const c = get().channels.find((x) => x.num === get().channelNum);
       if (c) get().showOsd({ kind: 'channel', num: c.num, name: c.name });
     }
   },
   togglePower: () => get().setPower(!get().power),
 
   setChannel: (num) => {
-    const c = channels.find((x) => x.num === num);
+    const c = get().channels.find((x) => x.num === num);
     if (!c) {
       get().showOsd({ kind: 'message', text: `NO SIGNAL — CH ${String(num).padStart(2, '0')}` });
       tvAudio.noSignal();
@@ -95,14 +147,25 @@ export const useTv = create<TvState>((set, get) => ({
     set({ channelNum: num, staticLevel: 1, tunedAt: Date.now(), guideOpen: false });
     get().showOsd({ kind: 'channel', num: c.num, name: c.name });
 
+    // Deliberately `history.replaceState` and not the Next router.
+    //
+    // Tuning is not navigation: it happens inside a 60fps rAF loop driving a
+    // WebGL shader and a synthesised audio engine, and routing it through
+    // `router.replace()` would fire an RSC request on every channel change and
+    // re-render the tree under the canvas. The query string is a bookmarkable
+    // record of where the dial is, nothing more, so writing it directly is both
+    // cheaper and more truthful.
+    if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
     url.searchParams.set('ch', String(num).padStart(2, '0'));
     window.history.replaceState({}, '', url);
   },
 
   channelStep: (delta) => {
-    const i = numbers.indexOf(get().channelNum);
-    const next = numbers[(i + delta + numbers.length) % numbers.length];
+    const dial = dialOf(get().channels);
+    if (dial.length === 0) return;
+    const i = dial.indexOf(get().channelNum);
+    const next = dial[(i + delta + dial.length) % dial.length];
     get().setChannel(next);
   },
 
@@ -155,3 +218,18 @@ export const useTv = create<TvState>((set, get) => ({
 
 /** Non-reactive read, for the animation loop. */
 export const tvState = () => useTv.getState();
+
+/**
+ * Dial lookups.
+ *
+ * These were exports of `content/channels.ts` and are store helpers now, for the
+ * same reason the array moved: reading them from anywhere else would re-import
+ * the content module and undo the cut. Neither is reactive — components that
+ * need to re-render on a channel change subscribe to `channelNum` and call
+ * these, which is what they already did.
+ */
+export const channelByNum = (num: number) =>
+  useTv.getState().channels.find((c) => c.num === num);
+
+export const channelBySlug = (slug: string) =>
+  useTv.getState().channels.find((c) => c.slug === slug);

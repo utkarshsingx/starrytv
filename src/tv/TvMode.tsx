@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import { CrtScreen } from './CrtScreen';
 import { Remote } from './Remote';
@@ -5,12 +7,8 @@ import { Guide } from './Guide';
 import { useTv } from './store';
 import { useRemoteControl, SHORTCUTS } from './useRemoteControl';
 import { tvAudio } from './engine/audio';
-import { channels } from '../content/channels';
-import { allBooks } from '../content/library';
-import { primaryLink } from '../lib/links';
 import { SoundToggle } from '../components/SoundToggle';
 import { nowPlaying, formatClock } from './engine/schedule';
-import './tv.css';
 
 type Props = { onExit: () => void };
 
@@ -49,12 +47,12 @@ export function TvMode({ onExit }: Props) {
   // teardown fired immediately after power-on, leaving the engine convinced the
   // set was off and silently swallowing every tuning sequence after it.
 
+  const channels = useTv((s) => s.channels);
   const channel = channels.find((c) => c.num === channelNum);
   const np = channel ? nowPlaying(channel) : null;
-  const book =
-    np?.programme.kind === 'book'
-      ? allBooks.find((b) => b.title === np.programme.heading)
-      : undefined;
+  // The LIBRARY channel carries its own link, resolved at build time — see the
+  // note in `content/channels.ts`. Nothing here knows what a book is any more.
+  const link = np?.programme.link;
 
   // A programme ending and the next beginning is a real broadcast event, so it
   // gets a real (very quiet) sound. Watching the programme id rather than a
@@ -190,14 +188,14 @@ export function TvMode({ onExit }: Props) {
                 <p className="now-card-lines">{np.programme.lines.slice(0, 3).join(' ')}</p>
                 {/* On the LIBRARY channel the thing on screen is a real book, so
                     give people the way out to actually go and find it. */}
-                {book && (
+                {link && (
                   <a
                     className="now-card-link"
-                    href={primaryLink(book)}
+                    href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Find “{book.title}” →
+                    {link.label} →
                   </a>
                 )}
                 {channel && <p className="now-card-blurb">{channel.blurb}</p>}

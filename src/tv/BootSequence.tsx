@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import { prefersReducedMotion } from '../lib/env';
 import { tvAudio } from './engine/audio';

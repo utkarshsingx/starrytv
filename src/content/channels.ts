@@ -1,6 +1,7 @@
 import type { Channel, Programme } from '../types';
 import { CHANNEL_DATA } from './programmes.data';
 import { library } from './library';
+import { primaryLink } from '../lib/links';
 
 /**
  * The dial.
@@ -65,6 +66,12 @@ function libraryChannel(): Channel {
       lines: [book.hook, '', ...splitForScreen(book.review)],
       footer: book.underdog,
       durationSec: 26 + (i % 3) * 3,
+      // Resolved here, where the book is already in hand. The TV overlay used
+      // to recover it at render time by matching `programme.heading` back
+      // against the whole book list — which meant shipping all hundred books to
+      // the browser to support one link, and rested on titles being unique
+      // (they are today, and nothing enforced it).
+      link: { label: `Find “${book.title}”`, href: primaryLink(book) },
     })),
   );
 

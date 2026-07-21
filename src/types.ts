@@ -56,6 +56,12 @@ export type Programme = {
   lines: string[];
   footer: string;
   durationSec: number;
+  /**
+   * Where to actually go and find the thing on screen — only the LIBRARY
+   * channel sets it. Baked into the manifest at build time so the television
+   * can offer the link without the book data ever reaching the browser.
+   */
+  link?: { label: string; href: string };
   /** Optional real video. When present the compositor paints frames from it. */
   media?: {
     src: string;
@@ -81,6 +87,31 @@ export type Channel = {
   /** One-line description of what this channel broadcasts. */
   blurb: string;
   programmes: Programme[];
+};
+
+/**
+ * The dial, serialised.
+ *
+ * This is the seam introduced by the Next port. The television used to `import`
+ * the channel data, which welded `books.data.ts` and `programmes.data.ts` into
+ * every client bundle — around 300KB of prose that the browser parsed on every
+ * visit whether or not anyone switched the set on. Now the schedule is built on
+ * the server and fetched as JSON, and the two content files never cross to the
+ * client at all.
+ *
+ * It is also the seam Phase 4 needs: once reviews come from Postgres rather than
+ * a `.ts` file, the manifest is the thing that changes and nothing in
+ * `src/tv/engine/` notices.
+ */
+export type ScheduleManifest = {
+  /**
+   * Content hash of `channels`. The television stores the last manifest it saw
+   * and compares revisions, so a cached copy can be reused without refetching.
+   */
+  revision: string;
+  /** When this revision was generated. ISO 8601. */
+  generatedAt: string;
+  channels: Channel[];
 };
 
 /** What is on air right now on a given channel. */

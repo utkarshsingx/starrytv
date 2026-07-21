@@ -1,3 +1,5 @@
+'use client';
+
 import { type Bus, tone, noise, noiseBuffer } from './synth';
 import { Bed, type BedSpec } from './bed';
 import { BED_SPECS } from '../../../content/beds.data';

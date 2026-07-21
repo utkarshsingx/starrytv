@@ -1,5 +1,6 @@
+'use client';
+
 import { useEffect, useRef } from 'react';
-import { channels } from '../content/channels';
 import { useTv } from './store';
 import { nowPlaying, upNext, formatClock } from './engine/schedule';
 import type { Command } from './useRemoteControl';
@@ -14,6 +15,9 @@ type Props = { press: (cmd: Command) => void };
 export function Guide({ press }: Props) {
   const current = useTv((s) => s.channelNum);
   const close = useTv((s) => s.toggleGuide);
+  // Subscribed, not read through the store helper: the guide is the one screen
+  // that must repaint when a late manifest replaces the bundled minimum.
+  const channels = useTv((s) => s.channels);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

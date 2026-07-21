@@ -1,3 +1,0 @@
-# Netlify / Cloudflare Pages SPA fallback.
-# /tv is a client-side route, not a file — serve the app for anything unmatched.
-/*  /index.html  200

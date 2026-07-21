@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Web Audio primitives.
  *

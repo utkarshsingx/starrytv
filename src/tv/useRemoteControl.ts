@@ -1,7 +1,9 @@
+'use client';
+
 import { useCallback, useEffect } from 'react';
 import { useTv } from './store';
 import { tvAudio } from './engine/audio';
-import { channelByNum } from '../content/channels';
+import { channelByNum } from './store';
 
 /**
  * One place where a "button press" is defined, whether it came from the on-screen

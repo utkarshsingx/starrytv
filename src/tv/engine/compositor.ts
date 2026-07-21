@@ -1,3 +1,5 @@
+'use client';
+
 import type { NowPlaying, ProgrammeKind } from '../../types';
 import { formatClock } from './schedule';
 

@@ -1,6 +1,7 @@
+'use client';
+
 import { useEffect, useRef, useState } from 'react';
-import { useTv, tvState } from './store';
-import { channels } from '../content/channels';
+import { useTv, tvState, channelByNum } from './store';
 import { nowPlaying } from './engine/schedule';
 import { paintFrame, W, H } from './engine/compositor';
 import { Crt, DEFAULT_UNIFORMS, tintFromHex, type CrtUniforms } from './engine/crt';
@@ -57,6 +58,9 @@ export function CrtScreen({ floorRef }: Props) {
     src.setAttribute('aria-hidden', 'true');
     fallbackHostRef.current?.appendChild(src);
 
+    // The laid-out box the picture occupies, whether or not the shader is up.
+    const screenEl = glCanvas.parentElement;
+
     const crt = new Crt(glCanvas);
     const deck = deckHostRef.current ? new VideoDeck(deckHostRef.current) : null;
     const reduceMotion = prefersReducedMotion();
@@ -85,14 +89,32 @@ export function CrtScreen({ floorRef }: Props) {
       raf = requestAnimationFrame(loop);
 
       const s = tvState();
-      const rect = glCanvas.getBoundingClientRect();
+
+      // Measure the screen, not the WebGL canvas.
+      //
+      // `.crt-screen.is-degraded .crt-canvas` is `display: none` (tv.css:363),
+      // so the moment the shader is declared down the GL canvas measures 0x0 —
+      // and an early return here would skip `paintFrame` for every subsequent
+      // frame, leaving the 2D composite that is *supposed* to become the
+      // picture permanently blank. That is precisely the "machine with no WebGL
+      // gets a blank rectangle" outcome the fallback exists to prevent.
+      //
+      // It was latent before the port: `tv.css` used to be imported by
+      // `TvMode.tsx` and arrived a beat after the first frames, so a couple of
+      // paints landed before the rule applied and the tube showed a frozen
+      // still. Hoisting the stylesheet into the root layout (which Next
+      // requires) closed that window and turned a frozen picture into no
+      // picture. `test/mount-counter.test.mjs` asserts the canvas has non-zero
+      // pixels so it cannot regress quietly again.
+      const glRect = glCanvas.getBoundingClientRect();
+      const rect = glRect.width > 0 ? glRect : (screenEl?.getBoundingClientRect() ?? glRect);
       if (rect.width === 0) return;
       crt.resize(
         Math.round(rect.width * dpr * quality),
         Math.round(rect.height * dpr * quality),
       );
 
-      const channel = channels.find((c) => c.num === s.channelNum) ?? channels[0];
+      const channel = s.channels.find((c) => c.num === s.channelNum) ?? s.channels[0];
       const np = s.power && channel ? nowPlaying(channel) : null;
 
       const sinceTune = (Date.now() - s.tunedAt) / 1000;
@@ -211,7 +233,7 @@ export function CrtScreen({ floorRef }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const channel = channels.find((c) => c.num === channelNum);
+  const channel = channelByNum(channelNum);
   const np = power && channel ? nowPlaying(channel) : null;
 
   return (

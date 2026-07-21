@@ -10,9 +10,3 @@ export function isCoarsePointer(): boolean {
   if (typeof window === 'undefined' || !window.matchMedia) return false;
   return window.matchMedia('(pointer: coarse)').matches;
 }
-
-/** Respect the user's data-saver preference before we ever fetch media. */
-export function saveData(): boolean {
-  const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
-  return Boolean(nav.connection?.saveData);
-}

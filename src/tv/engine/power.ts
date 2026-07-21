@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * The power transitions.
  *

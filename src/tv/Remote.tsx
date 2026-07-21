@@ -1,3 +1,5 @@
+'use client';
+
 import { useTv } from './store';
 import type { Command } from './useRemoteControl';
 

@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useRef, useState, useDeferredValue } from 'react';
 import { library, bookCount } from '../content/library';
 import { channels } from '../content/channels';
 import { linksFor } from '../lib/links';
-import { tvAudio } from '../tv/engine/audio';
 import { SoundToggle } from '../components/SoundToggle';
+import { HubControls } from './HubControls';
+import { TvLink } from './TvLink';
 import type { Book } from '../types';
-import './boring.css';
-
-type Props = { onEnterTv: () => void; tvOpen: boolean };
 
 /**
  * The Boring Edition.
@@ -16,39 +13,15 @@ type Props = { onEnterTv: () => void; tvOpen: boolean };
  * in the library as ordinary, selectable, printable, crawlable, screen-readable
  * text. If the WebGL mode fails on someone's machine, nothing is lost. That is
  * the whole point of building it this way round.
+ *
+ * **A Server Component**, and that is the other half of the port. It imports the
+ * library directly and renders all hundred books to HTML on the server, so the
+ * content is in the document for a crawler with no JavaScript at all — while
+ * `books.data.ts` never reaches a client bundle. The interactive parts (search,
+ * the mode switch, the print button, the channel rows) are small islands that
+ * carry no book data with them.
  */
-export function BoringEdition({ onEnterTv, tvOpen }: Props) {
-  const [query, setQuery] = useState('');
-  const deferred = useDeferredValue(query);
-
-  const results = useMemo(() => {
-    const q = deferred.trim().toLowerCase();
-    if (!q) return library;
-    return library
-      .map((g) => ({
-        ...g,
-        books: g.books.filter((b) =>
-          [b.title, b.author, b.review, b.hook, b.origin, ...b.tags]
-            .join(' ')
-            .toLowerCase()
-            .includes(q),
-        ),
-      }))
-      .filter((g) => g.books.length > 0);
-  }, [deferred]);
-
-  const shown = results.reduce((n, g) => n + g.books.length, 0);
-
-  // The drawer hitting its stop, once, when a search first comes up empty —
-  // not on every keystroke that stays empty.
-  const lastKey = useRef<string | undefined>(undefined);
-  const wasEmpty = useRef(false);
-  useEffect(() => {
-    const empty = deferred.trim().length > 0 && shown === 0;
-    if (empty && !wasEmpty.current) tvAudio.searchEmpty();
-    wasEmpty.current = empty;
-  }, [deferred, shown]);
-
+export function BoringEdition() {
   return (
     <div className="boring">
       <a className="skip-link" href="#library">
@@ -81,75 +54,10 @@ export function BoringEdition({ onEnterTv, tvOpen }: Props) {
             apiece. No bestsellers, no prize-winners everyone already owns.
           </p>
 
-          <fieldset className="mode-switch">
-            <legend className="sr-only">Choose how to read this</legend>
-            <label>
-              <input type="radio" name="mode" checked={!tvOpen} onChange={() => {}} />
-              <span>Boring</span>
-            </label>
-            <label>
-              <input type="radio" name="mode" checked={tvOpen} onChange={onEnterTv} />
-              <span>Not boring</span>
-            </label>
-          </fieldset>
-
-          <button className="tv-cta" onClick={onEnterTv}>
-            Switch on the television →
-          </button>
-
-          <div className="boring-search">
-            <label htmlFor="q" className="sr-only">
-              Search the library
-            </label>
-            <input
-              id="q"
-              type="search"
-              placeholder="Search titles, authors, tags…"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                tvAudio.unlock();
-                tvAudio.keystroke(lastKey.current);
-              }}
-              onKeyDown={(e) => {
-                // Modifiers and navigation keys strike no character, so they
-                // make no sound.
-                lastKey.current = e.key.length === 1 ? e.key : undefined;
-              }}
-              autoComplete="off"
-            />
-            {query && (
-              <p className="boring-search-count">
-                {shown} of {bookCount}
-              </p>
-            )}
-          </div>
-
-          <nav className="boring-nav" aria-label="Genres">
-            {library.map((g) => (
-              <a
-                key={g.slug}
-                href={`#${g.slug}`}
-                onClick={() => {
-                  tvAudio.unlock();
-                  tvAudio.pageJump();
-                }}
-              >
-                [{g.name}]
-              </a>
-            ))}
-          </nav>
-
-          <button
-            className="print-btn"
-            onClick={() => {
-              tvAudio.unlock();
-              tvAudio.print();
-              window.print();
-            }}
-          >
-            🖨 Print
-          </button>
+          <HubControls
+            bookCount={bookCount}
+            genres={library.map((g) => ({ slug: g.slug, name: g.name }))}
+          />
 
           <p className="boring-note">
             Links go to Bookshop.org, WorldCat, Open Library and Goodreads. Try the library one
@@ -180,15 +88,19 @@ export function BoringEdition({ onEnterTv, tvOpen }: Props) {
             </ul>
           </section>
 
-          {results.length === 0 && (
-            <p className="boring-empty">
-              Nothing matches “{query}”. Try an author, a country, or a tag like “grief” or
-              “desert”.
-            </p>
-          )}
+          {/*
+            Rendered in place and hidden, rather than returned from the search
+            island in the sidebar — the message belongs beside the list it is
+            describing, and this way it needs no JavaScript to be in the right
+            column.
+          */}
+          <p className="boring-empty" id="boring-empty" role="status" hidden>
+            Nothing matches “<span data-query />”. Try an author, a country, or a tag like “grief”
+            or “desert”.
+          </p>
 
-          {results.map((genre) => (
-            <section key={genre.slug} id={genre.slug} className="genre">
+          {library.map((genre) => (
+            <section key={genre.slug} id={genre.slug} className="genre" data-searchable="true">
               <h2 className="genre-head">
                 {genre.name}
                 <span className="genre-count">{genre.books.length}</span>
@@ -210,9 +122,9 @@ export function BoringEdition({ onEnterTv, tvOpen }: Props) {
               {channels.map((c) => (
                 <article key={c.num} className="book">
                   <h3>
-                    <button className="book-link channel-link" onClick={onEnterTv}>
+                    <TvLink>
                       {String(c.num).padStart(2, '0')} — {c.name}
-                    </button>
+                    </TvLink>
                   </h3>
                   <p className="book-meta">{c.programmes.length} segments on rotation</p>
                   <p className="book-review">{c.blurb}</p>

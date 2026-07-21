@@ -1,3 +1,5 @@
+'use client';
+
 import { useSyncExternalStore } from 'react';
 import { tvAudio, readPref, subscribeToPref } from '../tv/engine/audio';
 

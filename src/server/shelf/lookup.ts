@@ -98,7 +98,10 @@ async function searchOpenLibrary(q: string, userId: string | null): Promise<Book
   // Persist each result so the second person to want it finds it locally.
   const out: BookSummary[] = [];
   for (const d of docs) {
-    const author = d.author_name![0];
+    // Re-guard: the earlier filter narrowed these, but the map/sort chain loses
+    // the narrowing, so title/author are optional again to the type checker.
+    if (!d.title || !d.author_name?.[0]) continue;
+    const author = d.author_name[0];
     const slug = deriveSlug('ol', `${d.title}-${author}`);
     const isbn13 = (d.isbn ?? []).find((i) => i.replace(/[^0-9Xx]/g, '').length === 13) ?? null;
     const saved = await repo.upsertBook({

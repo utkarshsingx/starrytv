@@ -1,7 +1,9 @@
 import type { NextRequest } from 'next/server';
 import { route, ok } from '@/server/http';
 import { requireAdmin } from '@/server/auth/guard';
-import { approve, reject, requestChanges, unpublish, claim } from '@/server/ugc/service';
+import { approve, reject, requestChanges, claim } from '@/server/ugc/service';
+import { unpublishReview, republishReview } from '@/server/admin/service';
+import { getReviewByIdAdmin } from '@/server/ugc/repo';
 import { jsonBody, str } from '@/server/auth/request';
 import { REASON_CODES, type ReasonCode } from '@/server/ugc/types';
 import { badRequest } from '@/server/auth/errors';
@@ -37,7 +39,11 @@ export const POST = route(async (req: NextRequest, ctx: Ctx) => {
       needsReason();
       return ok({ review: await requestChanges(adminId, id, reasonCode, reasonText) });
     case 'unpublish':
-      return ok({ review: await unpublish(adminId, id, reasonText) });
+      await unpublishReview({ id: adminId, role: 'admin' }, id, reasonText);
+      return ok({ review: await getReviewByIdAdmin(id) });
+    case 'republish':
+      await republishReview({ id: adminId, role: 'admin' }, id);
+      return ok({ review: await getReviewByIdAdmin(id) });
     default:
       throw badRequest('BAD_ACTION', 'Unknown action.');
   }

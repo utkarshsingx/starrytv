@@ -1,19 +1,21 @@
-import { buildManifest } from '@/content/manifest';
+import { buildLiveManifest } from '@/server/broadcast/manifest';
 
 /**
- * The schedule, emitted as a static file at build time.
+ * The schedule, emitted for the television.
  *
- * `force-static` makes Next prerender this during `next build` and serve the
- * result as a plain asset — so this is a build step wearing a route handler's
- * clothes, with the advantage that the TypeScript imports simply work instead
- * of needing a separate compile pass for a standalone generator script.
+ * No longer `force-static`: since the manifest now folds in published reader
+ * reviews (`buildLiveManifest`), it has to read the database. It is cached for
+ * an hour instead — `revalidate = 3600` — which keeps broadcast determinism at
+ * the hour boundary (everyone loading within the same hour gets the same
+ * schedule) while letting a newly-approved review reach the air within the hour.
  *
- * When Phase 4 puts reviews in Postgres, this becomes the one place that has to
- * change: swap `buildManifest()` for a query and add `revalidate`. Nothing in
- * `src/tv/` will notice.
+ * Nothing under `src/tv/` changed: the set still fetches this one URL.
  */
-export const dynamic = 'force-static';
+export const revalidate = 3600;
 
-export function GET() {
-  return Response.json(buildManifest());
+export async function GET() {
+  const manifest = await buildLiveManifest();
+  return Response.json(manifest, {
+    headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=3600' },
+  });
 }

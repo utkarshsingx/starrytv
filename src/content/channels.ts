@@ -87,8 +87,10 @@ function libraryChannel(): Channel {
   };
 }
 
-/** A review is one paragraph; a CRT wants it in sentence-sized pieces. */
-function splitForScreen(text: string): string[] {
+/** A review is one paragraph; a CRT wants it in sentence-sized pieces.
+ *  Exported so the server manifest builder folds published reader reviews into
+ *  channel 10 with the exact same shaping the house books get. */
+export function splitForScreen(text: string): string[] {
   const sentences = text.match(/[^.!?]+[.!?]+["']?\s*/g) ?? [text];
   const out: string[] = [];
   let buf = '';

@@ -5,6 +5,8 @@ import { SoundToggle } from '../components/SoundToggle';
 import { HubControls } from './HubControls';
 import { TvLink } from './TvLink';
 import { AccountChip } from './AccountChip';
+import { ReviewEntry } from './ReviewEntry';
+import { publishedForHub, type HubReview } from '../server/ugc/service';
 import type { Book } from '../types';
 
 /**
@@ -22,7 +24,25 @@ import type { Book } from '../types';
  * the mode switch, the print button, the channel rows) are small islands that
  * carry no book data with them.
  */
-export function BoringEdition() {
+export async function BoringEdition() {
+  // Published reader reviews, layered over the seeded house catalogue. Reading
+  // the database makes the hub render per request rather than statically — the
+  // right trade now that the front page is live content; ISR with cache tags is
+  // the later optimisation. Grouped by genre slug so each review files under the
+  // same section as the house books.
+  const published: HubReview[] = await publishedForHub().catch(() => []);
+  const reviewsByGenre = new Map<string, HubReview[]>();
+  const ungrouped: HubReview[] = [];
+  for (const r of published) {
+    if (r.genreSlug) {
+      const list = reviewsByGenre.get(r.genreSlug) ?? [];
+      list.push(r);
+      reviewsByGenre.set(r.genreSlug, list);
+    } else {
+      ungrouped.push(r);
+    }
+  }
+
   return (
     <div className="boring">
       <a className="skip-link" href="#library">
@@ -108,12 +128,27 @@ export function BoringEdition() {
                 <span className="genre-count">{genre.books.length}</span>
               </h2>
               <div className="genre-grid">
+                {(reviewsByGenre.get(genre.slug) ?? []).map((r) => (
+                  <ReviewEntry key={r.slug} review={r} />
+                ))}
                 {genre.books.map((book) => (
                   <BookEntry key={book.id} book={book} />
                 ))}
               </div>
             </section>
           ))}
+
+          {ungrouped.length > 0 && (
+            <section className="genre" id="from-readers" data-searchable="true">
+              <h2 className="genre-head">
+                From readers
+                <span className="genre-count">{ungrouped.length}</span>
+              </h2>
+              <div className="genre-grid">
+                {ungrouped.map((r) => <ReviewEntry key={r.slug} review={r} />)}
+              </div>
+            </section>
+          )}
 
           <section className="genre" id="channels">
             <h2 className="genre-head">

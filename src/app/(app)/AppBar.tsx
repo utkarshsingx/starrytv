@@ -25,6 +25,7 @@ export function AppBar({ user }: { user: { displayName: string; role: 'user' | '
       <nav className="app-bar-nav">
         {link('/desk', 'Desk')}
         {link('/desk/shelf', 'My library')}
+        {link('/desk/reviews', 'My reviews')}
         {user.role === 'admin' && link('/admin', 'Admin')}
       </nav>
       <span className="app-bar-spacer" />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, isOk } from '@/lib/api';
 import { Cover, STATUS_LABEL } from '../../parts';
@@ -86,6 +87,10 @@ export function BookControls({ initialItem, initialQuotes }: { initialItem: Shel
           )}
         </div>
       </div>
+
+      <p style={{ margin: '0.5rem 0 2rem' }}>
+        <Link href={`/desk/write/${b.id}`} className="btn">Write a review of this →</Link>
+      </p>
 
       <QuoteBlock entryId={item.id} quotes={quotes} setQuotes={setQuotes} />
 

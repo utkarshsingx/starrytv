@@ -130,8 +130,13 @@ test('search hides books without shipping the book data', async () => {
   const page = await browser.newPage();
   await page.goto(BASE, { waitUntil: 'load' });
 
+  // At least the 100 house books. Not *exactly* 100 any more: since Phase 4 the
+  // hub also renders published reader reviews as `article.book`, so the count
+  // legitimately grows with the corpus. Asserting a fixed 100 would fail the
+  // moment a review is live — the search behaviour is what this tests, not the
+  // catalogue size.
   const before = await page.locator('article.book[id]:visible').count();
-  assert.equal(before, 100);
+  assert.ok(before >= 100, `expected at least 100 entries, got ${before}`);
 
   // A tag that really is in the corpus — 17 books carry "translated". The first
   // draft of this test searched for "iceland", which appears nowhere in
@@ -141,7 +146,7 @@ test('search hides books without shipping the book data', async () => {
   await page.waitForTimeout(400);
 
   const after = await page.locator('article.book[id]:visible').count();
-  assert.ok(after > 0 && after < 100, `search matched ${after} of 100`);
+  assert.ok(after > 0 && after < before, `search matched ${after} of ${before}`);
 
   // Empty-state copy lives in the main column, server-rendered and toggled.
   await page.fill('#q', 'zzzzzzzz');

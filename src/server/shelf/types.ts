@@ -1,4 +1,5 @@
-import 'server-only';
+// Pure types — no `server-only`, because Client Components (the composer, the
+// add-a-book box) import these shapes.
 
 /**
  * The shapes the shelf service returns to the routes. Kept separate from the
